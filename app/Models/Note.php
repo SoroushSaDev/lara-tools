@@ -9,8 +9,5 @@ class Note extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = [
-        'title',
-        'body',
-    ];
+    protected $fillable = ['title', 'body'];
 }

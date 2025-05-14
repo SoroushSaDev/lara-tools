@@ -43,5 +43,6 @@
             @yield('content')
         </div>
         @include('layouts.partial.footer')
+        @stack('script')
     </body>
 </html>
