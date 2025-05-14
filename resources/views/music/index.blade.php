@@ -18,50 +18,22 @@
 @endsection
 @section('content')
     <div class="flex flex-col space-y-2 w-full">
-        @forelse($musicFiles as $music)
-            <div
-                onclick="playMusic('{{ asset('storage/' . $music->path) }}', '{{ $music->title ?? $music->name }}', '{{ $music->artist }}', '{{ asset('storage/' . $music->cover_image) }}')"
-                class="flex justify-between items-center backdrop-blur-3xl bg-white/30 dark:bg-black/30 p-3 rounded-lg hover:shadow-2xl hover:cursor-pointer">
-                <div class="flex items-center space-x-3">
-                    <img src="{{ asset('storage/' . $music->cover_image) }}" alt="Cover Art"
-                         class="w-10 h-10 object-cover rounded">
-                    <div>
-                        <h2 class="font-semibold">
-                            {{ $music->title ?? $music->name }}
-                        </h2>
-                        <p class="text-sm">
-                            {{ $music->artist ?? 'Unknown artist' }} {{ $music->album ? (' | ' . $music->album) : '' }}
-                        </p>
-                    </div>
-                </div>
-                <div>
-                    <button type="button" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full">
-                        <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                </div>
-                {{--                @if ($music->duration)--}}
-                {{--                    <p><strong>Duration:</strong> {{ gmdate('i\:s', $music->duration) }}</p>--}}
-                {{--                @endif--}}
-                {{--                <audio controls class="mt-2 w-full">--}}
-                {{--                    <source src="{{ asset('storage/' . $music->path) }}">--}}
-                {{--                    Your browser does not support the audio element.--}}
-                {{--                </audio>--}}
-            </div>
+        @forelse($musicFiles as $key => $music)
+            @include('music.partial.music', ['music' => $music, 'key' => $key])
         @empty
             <p class="font-semibold text-center">
                 You don't have any music yet
             </p>
         @endforelse
     </div>
-    <div
-        class="fixed bottom-16 left-0 w-full p-3 transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0">
+    @section('bottom-bar')
         <div
-            class="flex justify-between items-center backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md shadow-2xl p-2">
+            class="flex justify-between items-center backdrop-blur-3xl bg-white/30 dark:bg-black/30 shadow-2xl p-2">
             <div class="flex items-center space-x-3">
-                <img id="player-cover" src="" alt="Cover" class="w-16 h-16 rounded object-cover hidden">
+                <img id="player-cover" src="" alt="Cover" class="w-10 h-10 rounded object-cover hidden">
                 <div>
                     <h3 id="player-title" class="font-semibold"></h3>
-                    <p id="player-artist" class="text-sm text-gray-600"></p>
+                    <p id="player-artist" class="text-xs"></p>
                 </div>
                 <audio id="audio-player" controls class="w-full mt-1 hidden">
                     <source id="audio-source" src="">
@@ -69,25 +41,54 @@
                 </audio>
             </div>
             <div>
-                <button type="button" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full">
-                    <i class="bi bi-play-fill"></i>
+                <button type="button" id="next" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full"
+                        onclick="playPrevious();">
+                    <i class="bi bi-skip-start-fill"></i>
+                </button>
+                <button type="button" id="toggle" class="hover:cursor-pointer backdrop-blur-3xl hover:text-black hover:bg-white px-2 py-1 rounded-full"
+                        data-status="paused" onclick="toggleAudio();">
+                    <i id="toggle-icon" class="bi bi-play-fill"></i>
+                </button>
+                <button type="button" id="next" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full"
+                        onclick="playNext();">
+                    <i class="bi bi-skip-end-fill"></i>
                 </button>
             </div>
         </div>
-    </div>
+    @endsection
     @push('script')
         <script>
-            const audio = document.getElementById('audio-player');
+            let current = null;
 
-            function playMusic(path, title, artist, cover) {
-                const source = document.getElementById('audio-source');
+            const toggler = document.getElementById('toggle');
+            const audio = document.getElementById('audio-player');
+            const source = document.getElementById('audio-source');
+            const togglerIcon = document.getElementById('toggle-icon');
+
+            function playAudio() {
+                audio.play();
+                toggler.dataset.status = 'playing';
+                togglerIcon.classList.remove('bi-play-fill');
+                togglerIcon.classList.add('bi-pause');
+            }
+
+            function playMusic(key) {
+                const item = document.getElementById('music-' + key);
+
+                const path = item.dataset.path;
+                const title = item.dataset.title;
+                const artist = item.dataset.artist;
+                const cover = item.dataset.cover;
+
                 const titleEl = document.getElementById('player-title');
                 const artistEl = document.getElementById('player-artist');
                 const coverEl = document.getElementById('player-cover');
 
                 source.src = path;
                 audio.load();
-                audio.play();
+                playAudio();
+
+                current = key;
 
                 titleEl.textContent = title;
                 artistEl.textContent = artist ?? '';
@@ -97,6 +98,27 @@
                 } else {
                     coverEl.classList.add('hidden');
                 }
+            }
+
+            function toggleAudio() {
+                if (toggler.dataset.status == 'paused') {
+                    playAudio();
+                } else {
+                    audio.pause();
+                    toggler.dataset.status = 'paused';
+                    togglerIcon.classList.remove('bi-pause');
+                    togglerIcon.classList.add('bi-play-fill');
+                }
+            }
+
+            function playNext() {
+                newKey = parseInt(current) + 1;
+                playMusic(newKey);
+            }
+
+            function playPrevious() {
+                newKey = parseInt(current) - 1;
+                playMusic(newKey);
             }
         </script>
     @endpush
