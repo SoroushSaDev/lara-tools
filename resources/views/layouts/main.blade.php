@@ -24,7 +24,7 @@
 
         @stack('style')
     </head>
-    <body class="bg-conic/decreasing from-violet-900 via-lime-900 to-violet-900 text-white flex p-3 lg:p-5 items-center lg:justify-center min-h-screen select-none flex-col scroll-smooth pt-20 pb-35">
+    <body class="bg-conic/decreasing from-violet-900 via-lime-900 to-violet-900 text-white flex p-3 lg:p-5 items-center lg:justify-center min-h-screen select-none flex-col scroll-smooth pt-20 pb-40">
         <div class="fixed top-0 grid grid-cols-5 gap-3 lg:gap-6 w-full p-3 z-30 backdrop-blur-3xl">
             <div class="flex justify-start items-center space-x-3 lg:space-x-5">
                 @yield('header-s')
