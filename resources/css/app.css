@@ -5,7 +5,25 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/* Quicksand Variable Font */
+@font-face {
+    font-family: 'Quicksand';
+    src: url('/fonts/Quicksand-VariableFont_wght.ttf') format('truetype-variations');
+    font-weight: 300 700; /* Specify the supported weight range */
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Outfit Variable Font */
+@font-face {
+    font-family: 'Outfit';
+    src: url('/fonts/Outfit-VariableFont_wght.ttf') format('truetype-variations');
+    font-weight: 100 900; /* Outfit typically supports this range */
+    font-style: normal;
+    font-display: swap;
+}
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    'Segoe UI Symbol', 'Noto Color Emoji', 'Quicksand', 'Outfit';
 }

@@ -6,20 +6,28 @@ use App\Models\Music;
 use Exception;
 use getID3;
 use getid3_lib;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Native\Laravel\Dialog;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 
 class MusicController extends Controller
 {
+
     /**
+     * @return RedirectResponse
      * @throws Exception
      */
     public function pickFileOrFolder()
     {
         $result = Dialog::new()
-            ->title('Select Music File or Folder')
+            ->title('Select Music Files')
             ->properties(['openFile', 'multiSelections'])
             ->filter('Audio Files', ['mp3', 'wav', 'flac', 'ogg', 'aac'])
             ->open();
@@ -39,7 +47,10 @@ class MusicController extends Controller
         return redirect()->route('music.index')->with('success', 'Music files imported!');
     }
 
+
     /**
+     * @param string $dir
+     * @return void
      * @throws Exception
      */
     private function scanAndStore(string $dir)
@@ -52,8 +63,10 @@ class MusicController extends Controller
         }
     }
 
+
     /**
-     * @throws Exception
+     * @param string $originalPath
+     * @return void
      */
     private function storeMusicFile(string $originalPath)
     {
@@ -98,9 +111,27 @@ class MusicController extends Controller
         ]);
     }
 
+    /**
+     * @return Factory|View|Application|\Illuminate\View\View|object
+     */
     public function index()
     {
         $musicFiles = Music::latest()->get();
         return view('music.index', compact('musicFiles'));
+    }
+
+    /**
+     * @param $file
+     * @return BinaryFileResponse
+     */
+    public function stream($file)
+    {
+        $path = 'music/' . $file;
+
+        if (!Storage::exists($path)) {
+            abort(404);
+        }
+
+        return response()->file(storage_path('app/' . $path));
     }
 }

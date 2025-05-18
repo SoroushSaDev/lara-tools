@@ -5,13 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Requests\NoteRequest;
 use App\Models\Note;
 use Exception;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class NoteController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @return Factory|View|Application|\Illuminate\View\View|object
      */
     public function index()
     {
@@ -20,7 +25,7 @@ class NoteController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * @return Factory|View|Application|\Illuminate\View\View|object
      */
     public function create()
     {
@@ -28,7 +33,9 @@ class NoteController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * @param NoteRequest $request
+     * @return RedirectResponse|void
+     * @throws Throwable
      */
     public function store(NoteRequest $request)
     {
@@ -47,7 +54,8 @@ class NoteController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * @param Note $note
+     * @return Factory|View|Application|\Illuminate\View\View|object
      */
     public function show(Note $note)
     {
@@ -55,7 +63,8 @@ class NoteController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * @param Note $note
+     * @return Factory|View|Application|\Illuminate\View\View|object
      */
     public function edit(Note $note)
     {
@@ -63,7 +72,10 @@ class NoteController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * @param NoteRequest $request
+     * @param Note $note
+     * @return RedirectResponse|void
+     * @throws Throwable
      */
     public function update(NoteRequest $request, Note $note)
     {
@@ -82,7 +94,9 @@ class NoteController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @param Note $note
+     * @return RedirectResponse|void
+     * @throws Throwable
      */
     public function destroy(Note $note)
     {
