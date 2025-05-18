@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TodoRequest;
 use App\Models\Todo;
+use Exception;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -28,24 +29,25 @@ class TodoController extends Controller
     }
 
     /**
-     * @param Request $request
+     * @param TodoRequest $request
      * @return RedirectResponse|void
      * @throws Throwable
      */
-    public function store(Request $request)
+    public function store(TodoRequest $request)
     {
-        $request->validate([
-            'title' => 'required',
-            'items.*' => 'required',
-            'description' => 'nullable',
-        ]);
         DB::beginTransaction();
         try {
-            $items = json_encode($request['items']);
+            $items = [];
+            foreach ($request->items as $item) {
+                $items[] = [
+                    'text' => $item,
+                    'completed' => false,
+                ];
+            }
             Todo::create([
                 'title' => $request['title'],
+                'items' => json_encode($items),
                 'description' => $request['description'],
-                'items' => $items,
             ]);
             DB::commit();
             return redirect()->route('todos.index');
@@ -72,18 +74,51 @@ class TodoController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * @param TodoRequest $request
+     * @param Todo $todo
+     * @return RedirectResponse|void
+     * @throws Throwable
      */
-    public function update(Request $request, Todo $todo)
+    public function update(TodoRequest $request, Todo $todo)
     {
-        //
+        DB::beginTransaction();
+        try {
+            $items = [];
+            foreach ($request->items as $item) {
+                if (!is_null($item))
+                    $items[] = [
+                        'text' => $item,
+                        'completed' => false,
+                    ];
+            }
+            $todo->update([
+                'title' => $request['title'],
+                'items' => json_encode($items),
+                'description' => $request['description'],
+            ]);
+            DB::commit();
+            return redirect()->route('todos.show', $todo);
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            dd($exception);
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @param Todo $todo
+     * @return RedirectResponse|void
+     * @throws Throwable
      */
     public function destroy(Todo $todo)
     {
-        //
+        DB::beginTransaction();
+        try {
+            $todo->delete();
+            DB::commit();
+            return redirect()->route('todos.index');
+        } catch (Exception $e) {
+            DB::rollBack();
+            dd($e->getMessage());
+        }
     }
 }

@@ -1474,7 +1474,7 @@
     @stack('style')
 </head>
 <body
-      class="bg-conic/decreasing from-violet-900 via-lime-900 to-violet-900 text-white flex p-3 lg:p-5 items-center lg:justify-center min-h-screen select-none flex-col scroll-smooth pt-20 pb-40">
+    class="bg-conic/decreasing from-violet-900 via-lime-900 to-violet-900 text-white flex p-3 lg:p-5 items-center lg:justify-center min-h-screen select-none flex-col scroll-smooth pt-20 pb-40">
 <div class="fixed top-0 grid grid-cols-5 gap-3 lg:gap-6 w-full p-3 z-30 backdrop-blur-3xl">
     <div class="flex justify-start items-center space-x-3 lg:space-x-6">
         @yield('header-s')
@@ -1490,11 +1490,11 @@
     class="flex items-center justify-center w-full transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0">
     @yield('content')
 </div>
-<div class="fixed bottom-0 left-0 w-full flex flex-col ">
+<div class="fixed bottom-0 left-0 w-full flex flex-col">
     @yield('bottom-bar')
     @include('layouts.partial.footer')
 </div>
-<script src="{{ asset('assets/flowbite/flowbite.min.js') }}"></script>
+@include('layouts.partial.scripts')
 @stack('script')
 </body>
 </html>

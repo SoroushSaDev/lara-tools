@@ -37,11 +37,13 @@
             Items
         </h3>
         @forelse(json_decode($todo->items) as $item)
-            <div class="flex justify-between items-center font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
+            <div
+                class="flex justify-between items-center font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
                 <p>
-                    {{ $item }}
+                    {{ $item->text }}
                 </p>
-                <input type="checkbox" value="" class="w-4 h-4 text-blue-600 backdrop-blur-3xl bg-white/30 border-none rounded-sm hover:cursor-pointer hover:shadow-2xl focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-black/30">
+                <input type="checkbox" @checked($item->completed)
+                class="w-4 h-4 text-blue-600 backdrop-blur-3xl bg-white/30 border-none rounded-sm hover:cursor-pointer hover:shadow-2xl focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-black/30">
             </div>
         @empty
             There are no items

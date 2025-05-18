@@ -19,17 +19,17 @@
     </button>
 @endsection
 @section('content')
-    <form id="todo" class="flex flex-col space-y-3 w-full h-100" method="POST"
+    <form id="todo" class="w-full h-100" method="POST"
           action="{{ route('todos.update', $todo) }}">
         @CSRF
         @method('PUT')
         <input type="text" name="title"
-               class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
+               class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md w-full p-3"
                placeholder="Title" value="{{ $todo->title }}"/>
-        <textarea name="body"
-                  class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md h-full resize-none p-3"
-                  placeholder="Body">{{ $todo->description }}</textarea>
-        <div class="grid grid-cols-3 gap-2 px-3">
+        <textarea name="description"
+                  class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md resize-none w-full p-3 mt-3"
+                  placeholder="Description">{{ $todo->description }}</textarea>
+        <div class="grid grid-cols-3 gap-2 p-3">
             <h3 class="text-center text-2xl font-semibold col-start-2">
                 Items
             </h3>
@@ -49,7 +49,7 @@
             </li>
             @forelse(json_decode($todo->items) as $item)
                 <li class="todo">
-                    <input type="text" name="items[]" onkeypress="Enter(event);" value="{{ $item }}"
+                    <input type="text" name="items[]" onkeypress="Enter(event);" value="{{ $item->text }}"
                            class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
                            placeholder="Write a todo..."/>
                 </li>
