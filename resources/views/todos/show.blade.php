@@ -30,16 +30,19 @@
         <span class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
             {{ $todo->title }}
         </span>
-        <p class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md resize-none p-3">
+        <p class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
             {{ $todo->description }}
         </p>
         <h3 class="text-center text-2xl font-semibold col-start-2">
             Items
         </h3>
         @forelse(json_decode($todo->items) as $item)
-            <p class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md resize-none p-3">
-                {{ $item }}
-            </p>
+            <div class="flex justify-between items-center font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
+                <p>
+                    {{ $item }}
+                </p>
+                <input type="checkbox" value="" class="w-4 h-4 text-blue-600 backdrop-blur-3xl bg-white/30 border-none rounded-sm hover:cursor-pointer hover:shadow-2xl focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-black/30">
+            </div>
         @empty
             There are no items
         @endforelse
