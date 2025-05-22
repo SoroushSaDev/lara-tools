@@ -22,10 +22,10 @@
     <form id="todo" class="flex flex-col space-y-3 w-full h-100" method="POST" action="{{ route('todos.store') }}">
         @CSRF
         <input type="text" name="title"
-               class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
+               class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md p-3"
                placeholder="Title"/>
         <textarea name="description"
-                  class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md resize-none p-3"
+                  class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md resize-none p-3"
                   placeholder="Description"></textarea>
         <div class="grid grid-cols-3 gap-2 px-3">
             <h3 class="text-center text-2xl font-semibold col-start-2">
@@ -41,7 +41,7 @@
         <ul id="todos" class="flex flex-col space-y-3">
             <li class="todo">
                 <input type="text" name="items[]" onkeypress="Enter(event);"
-                       class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
+                       class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md p-3"
                        placeholder="Write a todo..."/>
             </li>
         </ul>

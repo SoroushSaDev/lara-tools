@@ -24,7 +24,7 @@ class TodoRequest extends FormRequest
     {
         return [
             'title' => 'required',
-            'items.*' => 'required',
+            'items.*' => 'nullable',
             'description' => 'nullable',
         ];
     }

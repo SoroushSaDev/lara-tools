@@ -21,8 +21,8 @@
 @section('content')
     <form id="note" class="flex flex-col space-y-3 w-full h-100" method="POST" action="{{ route('notes.store') }}">
         @CSRF
-        <input type="text" name="title" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3" placeholder="Title"/>
-        <textarea name="body" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md h-full resize-none p-3"
+        <input type="text" name="title" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md p-3" placeholder="Title"/>
+        <textarea name="body" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md h-full resize-none p-3"
             placeholder="Body"></textarea>
     </form>
 @endsection

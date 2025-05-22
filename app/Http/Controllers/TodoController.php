@@ -39,10 +39,11 @@ class TodoController extends Controller
         try {
             $items = [];
             foreach ($request->items as $item) {
-                $items[] = [
-                    'text' => $item,
-                    'completed' => false,
-                ];
+                if (!is_null($item))
+                    $items[] = [
+                        'text' => $item,
+                        'completed' => false,
+                    ];
             }
             Todo::create([
                 'title' => $request['title'],
