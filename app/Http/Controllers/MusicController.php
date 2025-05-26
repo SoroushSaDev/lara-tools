@@ -134,4 +134,16 @@ class MusicController extends Controller
 
         return response()->file(storage_path('app/' . $path));
     }
+
+    public function delete(Music $music)
+    {
+        $filePath = public_path($music->path);
+
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
+        $music->delete();
+        return redirect()->route('music.index')->with('success', 'Music deleted');
+    }
 }
