@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('home');
+    return view('home.index');
 })->name('home');
 
 Route::get('/bin', [UserController::class, 'bin'])->name('bin');
@@ -20,6 +20,7 @@ Route::resource('todos', TodoController::class);
 Route::prefix('/music')->name('music.')->group(function () {
     Route::get('/', [MusicController::class, 'index'])->name('index');
     Route::get('/pick', [MusicController::class, 'pickFileOrFolder'])->name('pick');
+    Route::delete('/{music:id}/delete', [MusicController::class, 'delete'])->name('delete');
     Route::get('/stream/{file}', [MusicController::class, 'stream'])->where('file', '.*')->name('stream');
 });
 

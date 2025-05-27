@@ -23,6 +23,10 @@
                 data-popover-target="menu-{{ $key }}" data-popover-placement="left" data-popover-trigger="click" data-dropdown-toggle="menu-{{ $key }}">
             <i class="bi bi-three-dots-vertical"></i>
         </button>
+        <form id="delete-{{ $music->id }}" action="{{ route('music.delete', $music) }}" method="post">
+            @csrf
+            @method('DELETE')
+        </form>
     </div>
     {{--                @if ($music->duration)--}}
     {{--                    <p><strong>Duration:</strong> {{ gmdate('i\:s', $music->duration) }}</p>--}}
@@ -45,14 +49,14 @@
             </a>
         </li>
         <li>
-          <a href="#" class="block px-4 py-2 text-sm text-red-500 hover:backdrop-blur-3xl" role="menuitem">
+          <button type="button" class="flex justify-start px-4 py-2 text-sm text-red-500 hover:backdrop-blur-3xl cursor-pointer w-full" role="menuitem" onclick="document.querySelector('#delete-{{ $music->id }}').submit();">
             <div class="inline-flex items-center space-x-3">
               <i class="bi bi-trash3-fill"></i>
               <span>
                   Remove
               </span>
             </div>
-          </a>
+          </button>
         </li>
     </ul>
 </div>
