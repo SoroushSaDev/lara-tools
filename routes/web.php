@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\MusicController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\UserController;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,10 +24,7 @@ Route::prefix('/music')->name('music.')->group(function () {
     Route::get('/stream/{file}', [MusicController::class, 'stream'])->where('file', '.*')->name('stream');
 });
 
-Route::get('/calendar', function () {
-    $now = Carbon::now();
-    return view('calendar.index', compact('now'));
-})->name('calendar');
+Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
 Route::get('/calculator', function () {
     return view('calculator.index');
