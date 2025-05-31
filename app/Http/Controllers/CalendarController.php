@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -15,7 +16,7 @@ class CalendarController extends Controller
         $month = $jDate->getMonth();
         $year = $jDate->getYear();
         $day = $jDate->getDay();
-        $events = null;
+        $events = [];
 
         try {
             $data = Http::get("https://pnldev.com/api/calender?year=$year&month=$month&day=$day&holiday=false")->json();
@@ -27,5 +28,16 @@ class CalendarController extends Controller
 
         $date = $jDate->toCarbon();
         return view('calendar.index', compact('events', 'date'));
+    }
+
+    public function create(Request $request)
+    {
+        $date = Carbon::parse($request->date);
+        return view('calendar.create', compact('date'));
+    }
+
+    public function store(Request $request)
+    {
+        dd($request->all());
     }
 }

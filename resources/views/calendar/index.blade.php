@@ -12,11 +12,16 @@
 @endsection
 @section('title', 'Calendar')
 @section('header-e')
-
+    <a href="{{ route('calendar.create') }}?date={{ $date }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
+        <i class="bi bi-plus-lg"></i>
+        <span class="hidden lg:block">
+            Add Event
+        </span>
+    </a>
 @endsection
 @section('content')
     <div class="w-full p-4">
-        <div class="flex justify-between items-center max-sm:mb-5 sm:mb-20">
+        <div class="flex justify-between items-center max-sm:mb-5 sm:mb-20 font-semibold">
             <select id="month"
                     class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none p-2 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer">
                 @foreach(range(1, 12) as $m)
@@ -53,7 +58,7 @@
                     {{ $event }}
                 </li>
             @empty
-                <li class="font-semibold">
+                <li class="font-semibold text-center">
                     No Events
                 </li>
             @endforelse

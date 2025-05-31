@@ -27,8 +27,8 @@
         @endforelse
     </div>
     @section('bottom-bar')
-        <div
-            class="flex flex-col space-y-2 backdrop-blur-3xl bg-white/30 dark:bg-black/30 shadow-2xl p-2">
+        <div id="player"
+            class="hidden flex-col space-y-2 backdrop-blur-3xl p-2">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <img id="player-cover" src="" alt="Cover" class="w-10 h-10 rounded object-cover hidden">
@@ -42,15 +42,15 @@
                     </audio>
                 </div>
                 <div>
-                    <button type="button" id="next" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full"
+                    <button type="button" id="next" class="cursor-pointer backdrop-blur-3xl hover:bg-black/30 px-2 py-1 rounded-full"
                             onclick="playPrevious();">
                         <i class="bi bi-skip-start-fill"></i>
                     </button>
-                    <button type="button" id="toggle" class="hover:cursor-pointer backdrop-blur-3xl hover:text-black hover:bg-white px-2 py-1 rounded-full"
+                    <button type="button" id="toggle" class="cursor-pointer backdrop-blur-3xl bg-black/30 hover:text-black hover:bg-white px-2 py-1 rounded-full"
                             data-status="paused" onclick="toggleAudio();">
                         <i id="toggle-icon" class="bi bi-play-fill"></i>
                     </button>
-                    <button type="button" id="next" class="hover:cursor-pointer hover:backdrop-blur-3xl px-2 py-1 rounded-full"
+                    <button type="button" id="next" class="cursor-pointer backdrop-blur-3xl hover:bg-black/30 px-2 py-1 rounded-full"
                             onclick="playNext();">
                         <i class="bi bi-skip-end-fill"></i>
                     </button>
@@ -71,10 +71,18 @@
         <script>
             let current = null;
 
+            const player = document.getElementById('player');
             const toggler = document.getElementById('toggle');
             const audio = document.getElementById('audio-player');
             const source = document.getElementById('audio-source');
             const togglerIcon = document.getElementById('toggle-icon');
+
+            // Format seconds into mm:ss
+            function formatTime(sec) {
+                const mins = Math.floor(sec / 60);
+                const secs = Math.floor(sec % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
 
             function playAudio() {
                 audio.play();
@@ -114,12 +122,8 @@
                     coverEl.classList.add('hidden');
                 }
 
-                // Format seconds into mm:ss
-                function formatTime(sec) {
-                    const mins = Math.floor(sec / 60);
-                    const secs = Math.floor(sec % 60);
-                    return `${mins}:${secs.toString().padStart(2, '0')}`;
-                }
+                player.classList.remove('hidden');
+                player.classList.add('flex');
 
                 // Update progress bar and time display
                 audio.addEventListener('loadedmetadata', () => {
