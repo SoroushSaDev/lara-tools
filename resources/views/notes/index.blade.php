@@ -19,11 +19,11 @@
 @section('content')
     <div class="flex flex-wrap gap-3 lg:gap-6">
         @forelse ($notes as $note)
-            <a href="{{ route('notes.show', $note) }}" class="flex flex-col space-y-3 lg:space-y-6 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3 lg:p-5 hover:cursor-pointer hover:shadow-2xl">
-                <span class="font-semibold text-xl">
+            <a href="{{ route('notes.show', $note) }}" class="flex flex-col max-sm:space-y-3 sm:space-y-6 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md max-sm:p-3 sm:p-6 hover:cursor-pointer hover:shadow-2xl">
+                <span class="font-semibold max-sm:text-xl sm:text-3xl">
                     {{ $note->title }}
                 </span>
-                <p>
+                <p class="sm:text-xl">
                     {{ $note->body }}
                 </p>
             </a>

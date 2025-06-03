@@ -12,7 +12,7 @@
 
 @endsection
 @section('content')
-    <div class="w-full h-100">
+    <div class="max-sm:w-full h-100">
         <input type="text" id="calc-display"
                class="text-3xl font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md w-full p-3"
                disabled>

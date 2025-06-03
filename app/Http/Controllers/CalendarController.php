@@ -15,7 +15,7 @@ class CalendarController extends Controller
         $month = $jDate->getMonth();
         $year = $jDate->getYear();
         $day = $jDate->getDay();
-        $events = null;
+        $events = [];
 
         try {
             $data = Http::get("https://pnldev.com/api/calender?year=$year&month=$month&day=$day&holiday=false")->json();

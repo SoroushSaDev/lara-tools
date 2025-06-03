@@ -15,8 +15,8 @@
 
 @endsection
 @section('content')
-    <div class="w-full p-4">
-        <div class="flex justify-between items-center max-sm:mb-5 sm:mb-20">
+    <div class="max-sm:w-full sm:w-[600px] p-4 sm:text-xl">
+        <div class="flex justify-between items-center max-sm:mb-5 sm:mb-20 font-bold">
             <select id="month"
                     class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none p-2 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer">
                 @foreach(range(1, 12) as $m)
@@ -39,21 +39,23 @@
             </select>
         </div>
 
-        <div id="calendar" class="grid grid-cols-7 gap-2 text-center">
+        <div id="calendar" class="grid grid-cols-7 gap-2 text-center mt-10">
             <!-- Weekdays -->
             @foreach(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $day)
-                <div class="font-bold">{{ $day }}</div>
+                <div class="font-bold mb-5">
+                    {{ $day }}
+                </div>
             @endforeach
 
             <!-- Days will be inserted here by JavaScript -->
         </div>
-        <ul class="mt-5 backdrop-blur-3xl bg-white/30 dark:bg-black/30 p-3 rounded-lg text-sm space-y-3">
+        <ul class="mt-5 backdrop-blur-3xl bg-white/30 dark:bg-black/30 max-sm:p-3 sm:p-6 rounded-lg max-sm:text-sm space-y-3">
             @forelse($events as $event)
-                <li>
+                <li class="list-disc ms-5">
                     {{ $event }}
                 </li>
             @empty
-                <li class="font-semibold">
+                <li class="font-semibold text-gray-400">
                     No Events
                 </li>
             @endforelse
@@ -113,13 +115,13 @@
                     month == '{{ $date->month }}' &&
                     year == '{{ $date->year }}';
 
-                dayCell.className = "backdrop-blur-3xl p-2 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer " + (isSelectedDay ? 'border-2 border-white ' : 'border-none ') + (isToday ? "bg-white text-black font-bold" : "bg-white/30 dark:bg-black/30");
+                dayCell.className = "backdrop-blur-3xl max-sm:p-2 sm:p-5 sm:text-3xl rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer " + (isSelectedDay ? 'border-2 border-white font-bold ' : 'border-none ') + (isToday ? "bg-white text-black font-bold" : "bg-white/30 dark:bg-black/30");
                 dayCell.onclick = () => SetDate(dayCell)
                 calendar.appendChild(dayCell);
             }
         }
 
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function () {
             document.body.style.cursor = 'wait';
         });
 

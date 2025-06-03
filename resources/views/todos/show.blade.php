@@ -26,7 +26,7 @@
     </button>
 @endsection
 @section('content')
-    <div class="flex flex-col space-y-3 w-full h-100">
+    <div class="flex flex-col space-y-3 max-sm:w-full sm:w-[600px] h-100">
         <span class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
             {{ $todo->title }}
         </span>

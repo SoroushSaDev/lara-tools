@@ -19,7 +19,7 @@
     </button>
 @endsection
 @section('content')
-    <form id="todo" class="w-full h-100" method="POST"
+    <form id="todo" class="max-sm:w-full sm:w-[600px] h-100" method="POST"
           action="{{ route('todos.update', $todo) }}">
         @CSRF
         @method('PUT')
@@ -29,28 +29,31 @@
         <textarea name="description"
                   class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md resize-none w-full p-3 mt-3"
                   placeholder="Description">{{ $todo->description }}</textarea>
-        <div class="grid grid-cols-3 gap-2 p-3">
-            <h3 class="text-center text-2xl font-semibold col-start-2">
+        <div class="grid grid-cols-3 gap-2 items-center py-3">
+            <h3 class="text-center text-2xl font-bold col-start-2">
                 Items
             </h3>
-            <button type="button" class="flex justify-end items-center hover:text-gray-300 hover:cursor-pointer"
-                    onclick="AddTodo();">
-                <i class="bi bi-plus-lg"></i>
-                <span class="hidden lg:block ms-3">
+            <div class="flex justify-end items-center">
+                <button type="button"
+                        class="font-semibold flex items-center backdrop-blur-3xl max-sm:bg-white/30 dark:max-sm:bg-black/30 hover:bg-white/30 dark:hover:bg-black/30 hover:shadow-2xl cursor-pointer rounded-full w-max px-3 py-2"
+                        onclick="AddTodo();">
+                    <i class="bi bi-plus-lg"></i>
+                    <span class="hidden lg:block ms-3">
                     Add Item
                 </span>
-            </button>
+                </button>
+            </div>
         </div>
         <ul id="todos" class="flex flex-col space-y-3">
             <li class="todo">
                 <input type="text" name="items[]" onkeypress="Enter(event);"
-                       class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
+                       class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md p-3"
                        placeholder="Write a todo..."/>
             </li>
             @forelse(json_decode($todo->items) as $item)
                 <li class="todo">
                     <input type="text" name="items[]" onkeypress="Enter(event);" value="{{ $item->text }}"
-                           class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md p-3"
+                           class="w-full font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md p-3"
                            placeholder="Write a todo..."/>
                 </li>
             @empty

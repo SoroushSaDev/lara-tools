@@ -19,13 +19,19 @@
 @section('content')
     <div class="flex flex-wrap gap-3 lg:gap-6">
         @forelse ($todos as $todo)
+            @php
+                $count = count(json_decode($todo->items));
+            @endphp
             <a href="{{ route('todos.show', $todo) }}"
                class="flex flex-col space-y-3 lg:space-y-6 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3 lg:p-5 hover:cursor-pointer hover:shadow-2xl">
-                <span class="font-semibold text-xl">
+                <span class="font-semibold max-sm:text-xl sm:text-3xl">
                     {{ $todo->title }}
                 </span>
-                <p>
+                <p class="sm:text-xl">
                     {{ $todo->description }}
+                </p>
+                <p class="max-sm:text-xs sm:text-sm">
+                    {{ $count . ' Todo' . ($count > 1 ? 's' : '') }}
                 </p>
             </a>
         @empty

@@ -19,12 +19,12 @@
     </button>
 @endsection
 @section('content')
-    <form id="note" class="flex flex-col space-y-3 w-full h-100" method="POST" action="{{ route('notes.update', $note) }}">
+    <form id="note" class="flex flex-col space-y-3 h-100 max-sm:w-full sm:w-[600px] " method="POST" action="{{ route('notes.update', $note) }}">
         @CSRF
         @method('PUT')
-        <input type="text" name="title" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md p-3"
+        <input type="text" name="title" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md p-3"
             placeholder="Title" value="{{ $note->title }}"/>
-        <textarea name="body" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-300 border-none rounded-md h-full resize-none p-3"
+        <textarea name="body" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md h-full resize-none p-3"
             placeholder="Body">{{ $note->body }}</textarea>
     </form>
 @endsection
