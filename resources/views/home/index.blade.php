@@ -1,6 +1,6 @@
 @extends('layouts.main')
 @section('title', 'Home')
-@section('description', 'Pick what you need')
+{{--@section('top-bar', 'Pick what you need')--}}
 @section('content')
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mt-5 lg:mt-0">
         @include('home.partial.item', ['route' => route('notes.index'), 'icon' => 'sticky-fill', 'label' => 'Notes'])

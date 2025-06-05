@@ -33,7 +33,11 @@ Route::get('/calculator', function () {
 
 Route::prefix('/weather')->name('weather.')->group(function () {
     Route::get('/', [WeatherController::class, 'index'])->name('index');
-    Route::get('/data', [WeatherController::class, 'data'])->name('data');
-    Route::get('/city/{city}', [WeatherController::class, 'byCity']);
+    Route::any('/cities', [WeatherController::class, 'cities'])->name('cities');
     Route::get('/coordinates/{lat}/{lon}', [WeatherController::class, 'byCoordinates']);
+    Route::get('/city/{city:id}', [WeatherController::class, 'byCity']);
+    Route::get('/{city:id}/data', [WeatherController::class, 'data'])->name('data');
+    Route::get('/{city:id}/set', [WeatherController::class, 'homeTown'])->name('set');
+    Route::get('/{city:id}/update', [WeatherController::class, 'update'])->name('update');
+    Route::get('/{city:id}/delete', [WeatherController::class, 'delete'])->name('delete');
 });
