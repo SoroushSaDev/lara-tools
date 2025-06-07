@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MusicController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\TodoController;
@@ -8,9 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('home.index');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/bin', [UserController::class, 'bin'])->name('bin');
 Route::get('/settings', [UserController::class, 'settings'])->name('settings');
@@ -25,7 +24,11 @@ Route::prefix('/music')->name('music.')->group(function () {
     Route::get('/stream/{file}', [MusicController::class, 'stream'])->where('file', '.*')->name('stream');
 });
 
-Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+Route::prefix('/calendar')->name('calendar.')->group(function() {
+    Route::get('/', [CalendarController::class, 'index'])->name('index');
+    Route::get('/create', [CalendarController::class, 'create'])->name('create');
+    Route::post('/', [CalendarController::class, 'store'])->name('store');
+});
 
 Route::get('/calculator', function () {
     return view('calculator.index');

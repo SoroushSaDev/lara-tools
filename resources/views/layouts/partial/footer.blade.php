@@ -1,4 +1,4 @@
-<div class="grid grid-cols-3 gap-3 backdrop-blur-3xl bg-white.30 dark:bg-black/30 shadow-2xl p-2 pb-5 lg:hidden">
+<div class="grid grid-cols-3 gap-3 backdrop-blur-3xl p-2 pb-5 lg:hidden">
     <a href="{{ route('bin') }}" class="flex flex-col items-center hover:text-gray-300 text-md">
         <i class="bi bi-trash3{{ request()->is('bin*') ? '-fill' : '' }} text-lg"></i>
         <span class="text-xs font-semibold">

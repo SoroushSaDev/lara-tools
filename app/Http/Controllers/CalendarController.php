@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -27,5 +28,16 @@ class CalendarController extends Controller
 
         $date = $jDate->toCarbon();
         return view('calendar.index', compact('events', 'date'));
+    }
+
+    public function create(Request $request)
+    {
+        $date = Carbon::parse($request->date);
+        return view('calendar.create', compact('date'));
+    }
+
+    public function store(Request $request)
+    {
+        dd($request->all());
     }
 }

@@ -12,7 +12,12 @@
 @endsection
 @section('title', 'Calendar')
 @section('header-e')
-
+    <a href="{{ route('calendar.create') }}?date={{ $date }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
+        <i class="bi bi-plus-lg"></i>
+        <span class="hidden lg:block">
+            Add Event
+        </span>
+    </a>
 @endsection
 @section('content')
     <div class="max-sm:w-full sm:w-[600px] p-4 sm:text-xl">
@@ -55,7 +60,7 @@
                     {{ $event }}
                 </li>
             @empty
-                <li class="font-semibold text-gray-400">
+                <li class="font-semibold text-gray-400 text-center">
                     No Events
                 </li>
             @endforelse
