@@ -1,120 +1,125 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('home') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="hidden lg:block">
-            Home
-        </span>
-    </a>
-    @if(!$city->isHomeTown())
-        <a href="{{ route('weather.index') }}" class="flex items-center space-x-2 text-xl hover:text-yellow-300">
-            <i class="bi bi-star-fill"></i>
-            <span class="hidden lg:block">
-                Home Town
-            </span>
-        </a>
-    @endif
-@endsection
-@section('title', 'Weather')
-@section('header-e')
-    <a href="{{ route('weather.update', $city) }}" class="flex items-center space-x-2 text-xl hover:text-blue-300">
-        <i class="bi bi-arrow-clockwise"></i>
-        <span class="hidden lg:block">
-            Update
-        </span>
-    </a>
-    <a href="{{ route('weather.cities') }}" class="flex items-center space-x-2 text-xl hover:text-yellow-300">
-        <i class="bi bi-pencil-fill"></i>
-        <span class="hidden lg:block">
-            Manage Cities
-        </span>
-    </a>
-@endsection
-@section('content')
-    @if(!is_null($city))
-        @if(isset($weather['main']))
-            <div class="flex flex-col items-center max-sm:space-y-5 sm:space-y-10 max-sm:w-full">
-                <div class="flex max-sm:flex-col items-center max-sm:space-y-5 sm:space-x-10 w-full">
-                    <div class="flex flex-col items-center max-sm:space-y-3 sm:space-y-6">
-                        <h1 id="temp" class="max-sm:text-7xl sm:text-9xl font-bold">
-                            {{ $weather['main']['temp'] }}°C
-                        </h1>
-                        <div class="flex justify-between items-center w-full">
-                            <a href="{{ $city->getLast() != 0 ? route('weather.data', $city->getLast()) : '#' }}"
-                               class="hover:text-gray-400 max-sm:text-xl sm:text-3xl">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                            <h2 id="city" class="max-sm:text-4xl sm:text-6xl">
-                                {{ $weather['name'] }}
-                            </h2>
-                            <a href="{{ $city->getNext() != 0 ? route('weather.data', $city->getNext()) : '#' }}"
-                               class="hover:text-gray-400 max-sm:text-xl sm:text-3xl">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </div>
-                        <h3 class="max-sm:text-xl sm:text-3xl font-semibold">
-                            {{ $weather['weather'][0]['main'] }}
-                        </h3>
-                    </div>
-                    <div
-                        class="flex flex-col items-center max-sm:space-y-3 sm:space-y-6 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg max-sm:w-full sm:w-100 max-sm:p-3 sm:p-6 max-sm:text-lg sm:text-2xl">
-                        @include('weather.partial.property', ['label' => 'Country code', 'value' => $weather['sys']['country']])
-                        @include('weather.partial.property', ['label' => 'Feels like', 'value' => $weather['main']['feels_like'], 'unit' => '°C'])
-                        @include('weather.partial.property', ['label' => 'Humidity', 'value' => $weather['main']['humidity'], 'unit' => '%'])
-                        @include('weather.partial.property', ['label' => 'Pressure', 'value' => $weather['main']['pressure'], 'unit' => ' hPa'])
-                        @include('weather.partial.property', ['label' => 'Wind Speed', 'value' => $weather['wind']['speed'], 'unit' => ' m/s'])
-                        @include('weather.partial.property', ['label' => 'Wind Direction', 'value' => $weather['wind']['deg'], 'unit' => '°'])
-                    </div>
-                </div>
-                <ul class="space-y-3 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg w-full p-3 max-sm:text-sm sm:text-md font-semibold">
-                    @if($city->isHomeTown())
-                        <li class="flex items-center space-x-3">
-                            <i class="bi bi-star-fill"></i>
-                            <p>
-                                Showing Home Town
-                            </p>
-                        </li>
-                    @endif
-                    <li class="flex items-center space-x-3">
-                        <i class="bi bi-info-circle-fill"></i>
-                        <p>
-                            Updated at {{ $city->updated_at->timezone('Asia/Tehran')->format('l, j F Y | H:i:s') }}
-                        </p>
-                    </li>
-                </ul>
-            </div>
-        @else
-            <p>
-                <i class="bi bi-info-circle-fill me-1"></i>
-                Weather data not available
-            </p>
-        @endif
-    @else
-        <p>
-            <i class="bi bi-info-circle-fill me-1"></i>
-            Add a city first
-        </p>
-    @endif
-@endsection
-@push('script')
-    <script>
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-                    console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
 
-                    // You can use these values as needed
-                    // doSomethingWithLocation(latitude, longitude);
-                },
-                (error) => {
-                    console.error("Error getting location:", error.message);
-                    // Handle errors appropriately
-                }
-            );
-        } else {
-            console.log("Geolocation is not supported by this browser.");
-        }
-    </script>
-@endpush
+@section('title', 'Weather')
+
+@php
+    $unitSymbol = temperatureUnitSymbol($weatherUnits);
+@endphp
+
+@section('content')
+    <x-page-header back="{{ route('home') }}" back-label="Home">
+        <x-slot:title>Weather</x-slot:title>
+
+        @if ($city)
+            <x-slot:subtitle>
+                {{ $city->isHomeTown() ? 'Your home town · ' : '' }}{{ $city->country_code }}
+            </x-slot:subtitle>
+        @elseif ($isLiveLocation)
+            <x-slot:subtitle>Live location</x-slot:subtitle>
+        @endif
+
+        <x-slot:actions>
+            @if ($city && ! $city->isHomeTown())
+                <form method="POST" action="{{ route('weather.set', $city) }}">
+                    @csrf
+
+                    <button type="submit" class="icon-btn hover:!text-amber-400" title="Set as home town">
+                        <i class="bi bi-star"></i>
+                    </button>
+                </form>
+            @endif
+
+            <a href="{{ route('settings', ['tab' => 'weather']) }}" class="icon-btn" title="Weather settings">
+                <i class="bi bi-gear"></i>
+            </a>
+
+            <button type="button"
+                    data-locate-url="{{ route('weather.locate') }}"
+                    class="icon-btn hover:!text-sky-500"
+                    title="Use my location">
+                <i class="bi bi-geo-alt-fill"></i>
+            </button>
+
+            @if ($city)
+                <form method="POST" action="{{ route('weather.refresh', $city) }}">
+                    @csrf
+
+                    <button type="submit" class="icon-btn hover:!text-sky-500" title="Refresh weather">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </form>
+            @endif
+
+            <a href="{{ route('weather.cities.index') }}" class="btn-ghost" title="Manage cities">
+                <i class="bi bi-pencil"></i><span class="hidden sm:inline">Cities</span>
+            </a>
+        </x-slot:actions>
+    </x-page-header>
+
+    @if (isset($error))
+        <div class="glass mb-4 flex items-center gap-3 border-l-4 !border-l-rose-500 p-4 animate-fade-up">
+            <i class="bi bi-wifi-off shrink-0 text-xl text-rose-500"></i>
+            <p class="text-sm font-bold">{{ $error }}</p>
+        </div>
+    @endif
+
+    @if ($weather && isset($weather['main']))
+        <div class="mx-auto flex max-w-lg flex-col items-center gap-6 text-center">
+            {{-- Condition hero --}}
+            <div class="flex flex-col items-center gap-2 animate-fade-up">
+                <div class="relative">
+                    <i class="bi {{ weatherIcon($weather['weather'][0]['main'] ?? null) }} bg-gradient-to-br from-sky-400 to-blue-600 bg-clip-text text-[7rem] leading-none text-transparent drop-shadow-lg sm:text-[9rem]"></i>
+                    <span class="absolute inset-0 -z-10 mx-auto mt-6 size-24 rounded-full bg-sky-400/25 blur-2xl"></span>
+                </div>
+
+                <h2 class="heading text-6xl sm:text-7xl">
+                    {{ round($weather['main']['temp']) }}{{ $unitSymbol }}
+                </h2>
+
+                <p class="text-xl font-bold capitalize text-slate-600 dark:text-slate-300">
+                    {{ $weather['weather'][0]['description'] ?? '—' }}
+                </p>
+
+                <p class="flex items-center gap-2 text-lg font-bold">
+                    @if ($isLiveLocation || ($city?->name) !== ($weather['name'] ?? null))
+                        <i class="bi bi-geo-alt-fill text-sky-500"></i>
+                    @endif
+                    {{ $weather['name'] }}
+                    @if (! $isLiveLocation && $city && $city->isHomeTown())
+                        <i class="bi bi-star-fill text-sm text-amber-400" title="Home town"></i>
+                    @endif
+                </p>
+            </div>
+
+            {{-- Detail grid --}}
+            <dl class="glass grid w-full grid-cols-2 gap-x-6 gap-y-5 p-6 text-left animate-fade-up sm:grid-cols-3" style="animation-delay: 80ms">
+                @include('weather.partial.property', ['label' => 'Feels like', 'value' => round($weather['main']['feels_like']).$unitSymbol, 'icon' => 'bi-thermometer-half'])
+                @include('weather.partial.property', ['label' => 'Humidity', 'value' => $weather['main']['humidity'].'%', 'icon' => 'bi-droplet-half'])
+                @include('weather.partial.property', ['label' => 'Pressure', 'value' => $weather['main']['pressure'].' hPa', 'icon' => 'bi-speedometer'])
+                @include('weather.partial.property', ['label' => 'Wind speed', 'value' => $weather['wind']['speed'].' m/s', 'icon' => 'bi-wind'])
+                @include('weather.partial.property', ['label' => 'Wind dir.', 'value' => $weather['wind']['deg'].'°', 'icon' => 'bi-compass'])
+
+                @if (isset($weather['sys']['sunrise']))
+                    @include('weather.partial.property', ['label' => 'Sunrise', 'value' => date('H:i', (int) $weather['sys']['sunrise']), 'icon' => 'bi-sunrise'])
+                @endif
+                @isset($weather['sys']['sunset'])
+                    @include('weather.partial.property', ['label' => 'Sunset', 'value' => date('H:i', (int) $weather['sys']['sunset']), 'icon' => 'bi-sunset'])
+                @endisset
+            </dl>
+        </div>
+    @elseif (! $city)
+        <x-empty-state icon="bi-cloud-plus-fill" title="No city selected yet">
+            <x-slot:description>Add a city to start tracking its weather.</x-slot:description>
+
+            <x-slot:action>
+                <a href="{{ route('weather.cities.index') }}" class="btn-primary mt-2">
+                    <i class="bi bi-plus-lg"></i>Add a city
+                </a>
+            </x-slot:action>
+        </x-empty-state>
+    @else
+        <x-empty-state icon="bi-cloud-slash-fill" title="Weather data unavailable">
+            <x-slot:description>The stored snapshot could not be refreshed. Try again later.</x-slot:description>
+        </x-empty-state>
+    @endif
+@endsection

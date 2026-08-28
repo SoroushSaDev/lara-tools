@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * A city saved by the user together with a snapshot of its weather.
+ */
 class City extends Model
 {
     use SoftDeletes;
@@ -25,37 +28,27 @@ class City extends Model
         'sunrise',
         'sunset',
         'sea_level',
-        'deleted_at',
     ];
 
     /**
-     * @return bool
+     * The attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'coordinates' => 'array',
+            'sunrise' => 'datetime',
+            'sunset' => 'datetime',
+        ];
+    }
+
+    /**
+     * Determine whether this city is configured as the user's home town.
      */
     public function isHomeTown(): bool
     {
-        $result = false;
-        $settings = Setting::where('key', 'home-town')?->first() ?? null;
-
-        if ($settings) {
-            $result = $settings->value == $this->name;
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getNext(): mixed
-    {
-        return self::firstWhere('id', $this->id + 1)?->id ?? 0;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getLast(): mixed
-    {
-        return self::firstWhere('id', $this->id - 1)?->id ?? 0;
+        return app(\App\Services\SettingService::class)->get('home-town') === $this->name;
     }
 }

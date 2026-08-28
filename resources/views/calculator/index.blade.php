@@ -1,140 +1,73 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('home') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="invisible lg:visible">
-            Home
-        </span>
-    </a>
-@endsection
+
 @section('title', 'Calculator')
-@section('header-e')
 
-@endsection
 @section('content')
-    <div class="max-sm:w-full h-100">
-        <input type="text" id="calc-display"
-               class="text-3xl font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none rounded-md w-full p-3"
-               disabled>
-        <div class="grid grid-cols-4 gap-2 mt-10">
-            <button onclick="Clear();"
-                    class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                C
-            </button>
-            <button onclick="Backspace();"
-                    class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                ⌫
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                %
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                /
-            </button>
+    <x-page-header back="{{ route('home') }}" back-label="Home">
+        <x-slot:title>Calculator</x-slot:title>
+    </x-page-header>
 
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                7
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                8
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                9
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                x
-            </button>
+    <div id="calculator" class="mx-auto w-full max-w-md animate-fade-up">
+        {{-- Display --}}
+        <div class="glass flex min-h-28 flex-col items-end justify-center gap-1 p-5">
+            <input type="text" id="calc-expression" readonly
+                   class="w-full bg-transparent text-right font-display text-3xl font-semibold tracking-wide text-slate-900 outline-none dark:text-white"
+                   value="0"/>
+            <span id="calc-preview" class="min-h-6 w-full truncate text-right text-lg font-bold text-slate-400 dark:text-slate-500"></span>
+        </div>
 
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                4
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                5
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                6
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                -
-            </button>
+        {{-- Keypad --}}
+        <div class="mt-4 grid grid-cols-4 gap-2.5 sm:gap-3">
+            <button type="button" data-key="clear"
+                    class="btn-danger !rounded-2xl h-14 !px-0 sm:h-16 sm:text-lg">C</button>
 
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                1
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                2
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                3
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                +
-            </button>
+            <button type="button" data-key="backspace"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 sm:h-16 sm:text-lg"><i class="bi bi-backspace"></i></button>
 
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                0
-            </button>
-            <button
-                class="calc-btn backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
-                .
-            </button>
-            <button onclick="Calculate();"
-                    class="col-span-2 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl hover:cursor-pointer h-20 text-3xl">
+            <button type="button" data-key="%"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 text-lg sm:h-16">%</button>
+
+            <button type="button" data-key="/"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 text-lg sm:h-16">&divide;</button>
+
+            @foreach ([['7', '7'], ['8', '8'], ['9', '9']] as [$key, $label])
+                <button type="button" data-key="{{ $key }}"
+                        class="glass glass-hover !rounded-2xl h-14 cursor-pointer !px-0 font-display text-xl sm:h-16">{{ $label }}</button>
+            @endforeach
+
+            <button type="button" data-key="*"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 text-lg sm:h-16">&times;</button>
+
+            @foreach (['4', '5', '6'] as $key)
+                <button type="button" data-key="{{ $key }}"
+                        class="glass glass-hover !rounded-2xl h-14 cursor-pointer !px-0 font-display text-xl sm:h-16">{{ $key }}</button>
+            @endforeach
+
+            <button type="button" data-key="-"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 text-lg sm:h-16">&minus;</button>
+
+            @foreach (['1', '2', '3'] as $key)
+                <button type="button" data-key="{{ $key }}"
+                        class="glass glass-hover !rounded-2xl h-14 cursor-pointer !px-0 font-display text-xl sm:h-16">{{ $key }}</button>
+            @endforeach
+
+            <button type="button" data-key="+"
+                    class="btn-ghost !rounded-2xl h-14 !px-0 text-lg sm:h-16">+</button>
+
+            <button type="button" data-key="0"
+                    class="glass glass-hover col-span-2 !rounded-2xl h-14 cursor-pointer !px-0 font-display text-xl sm:h-16">0</button>
+
+            <button type="button" data-key="."
+                    class="glass glass-hover !rounded-2xl h-14 cursor-pointer !px-0 font-display text-xl sm:h-16">.</button>
+
+            <button type="button" data-key="equals"
+                    class="flex h-14 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-xl text-white shadow-lg shadow-violet-600/40 transition-all hover:brightness-110 active:scale-95 sm:h-16">
                 =
             </button>
         </div>
+
+        <p class="mt-4 hidden text-center text-xs font-bold text-slate-400 sm:block">
+            Keyboard supported — digits, operators, Enter, Backspace, Esc.
+        </p>
     </div>
 @endsection
-@push('script')
-    <script>
-        let current = '';
-        const buttons = document.querySelectorAll('.calc-btn');
-        const display = document.getElementById('calc-display');
-
-        buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                let value = btn.textContent.trim();
-
-                current += value;
-                display.value = current;
-            });
-        });
-
-        function Backspace() {
-            current = current.slice(0, -1);
-            display.value = current;
-        }
-
-        function Calculate() {
-            current = current.replaceAll('x', '*');
-
-            try {
-                current = eval(current).toString();
-            } catch {
-                current = 'Error';
-            }
-
-            display.value = current;
-        }
-
-        function Clear() {
-            current = '';
-            display.value = current;
-        }
-    </script>
-@endpush

@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Services;
+
+use App\Contracts\HolidayProvider;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Holiday provider backed by the pnldev.com Iranian calendar API.
+ *
+ * Responses are cached for six hours so the calendar renders instantly
+ * and keeps working offline with previously cached data.
+ */
+class PnlHolidayProvider implements HolidayProvider
+{
+    /**
+     * API endpoint.
+     *
+     * @var string
+     */
+    protected const ENDPOINT = 'https://pnldev.com/api/calender';
+
+    /**
+     * Cache TTL in seconds.
+     *
+     * @var int
+     */
+    protected const CACHE_TTL = 21600;
+
+    /**
+     * {@inheritDoc}
+     */
+    public function forDate(int $year, int $month, int $day): array
+    {
+        return Cache::remember(
+            "holidays:{$year}-{$month}-{$day}",
+            self::CACHE_TTL,
+            fn () => $this->fetch($year, $month, $day)
+        );
+    }
+
+    /**
+     * Call the remote API, returning an empty list on any failure.
+     *
+     * @return array<int, string>
+     */
+    protected function fetch(int $year, int $month, int $day): array
+    {
+        try {
+            $payload = Http::timeout(8)
+                ->get(self::ENDPOINT, [
+                    'year' => $year,
+                    'month' => $month,
+                    'day' => $day,
+                    'holiday' => 'false',
+                ])
+                ->json();
+        } catch (ConnectionException $exception) {
+            Log::info('Holiday API unreachable', ['exception' => $exception->getMessage()]);
+
+            return [];
+        }
+
+        if (! is_array($payload) || ($payload['status'] ?? false) !== true) {
+            return [];
+        }
+
+        return collect($payload['result']['event'] ?? [])
+            ->filter(fn ($event) => filled($event))
+            ->map(fn ($event) => (string) $event)
+            ->values()
+            ->all();
+    }
+}

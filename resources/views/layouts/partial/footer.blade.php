@@ -1,20 +1,4 @@
-<div class="grid grid-cols-3 gap-3 backdrop-blur-3xl p-2 pb-5 lg:hidden">
-    <a href="{{ route('bin') }}" class="flex flex-col items-center hover:text-gray-300 text-md">
-        <i class="bi bi-trash3{{ request()->is('bin*') ? '-fill' : '' }} text-lg"></i>
-        <span class="text-xs font-semibold">
-            Recycle Bin
-        </span>
-    </a>
-    <a href="{{ route('home') }}" class="flex flex-col items-center hover:text-gray-300 text-md">
-        <i class="bi bi-house{{ request()->is('/') ? '-fill' : '' }} text-lg"></i>
-        <span class="text-xs font-semibold">
-            Home
-        </span>
-    </a>
-    <a href="{{ route('settings') }}" class="flex flex-col items-center hover:text-gray-300 text-md">
-        <i class="bi bi-gear{{ request()->is('settings*') ? '-fill' : '' }} text-lg"></i>
-        <span class="text-xs font-semibold">
-            Settings
-        </span>
-    </a>
-</div>
+{{-- Small application footer --}}
+<footer class="px-4 pb-4 text-center text-xs font-semibold text-slate-400 lg:pb-6 dark:text-slate-500">
+    LaraTools · built with Laravel &amp; NativePHP
+</footer>

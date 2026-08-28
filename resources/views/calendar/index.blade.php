@@ -1,155 +1,127 @@
-@php
-    use Carbon\Carbon;
-@endphp
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('home') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="invisible lg:visible">
-            Home
-        </span>
-    </a>
-@endsection
-@section('title', 'Calendar')
-@section('header-e')
-    <a href="{{ route('calendar.create') }}?date={{ $date }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-plus-lg"></i>
-        <span class="hidden lg:block">
-            Add Event
-        </span>
-    </a>
-@endsection
-@section('content')
-    <div class="max-sm:w-full sm:w-[600px] p-4 sm:text-xl">
-        <div class="flex justify-between items-center max-sm:mb-5 sm:mb-20 font-bold">
-            <select id="month"
-                    class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none p-2 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer">
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}">
-                        {{ Carbon::create()->month($m)->format('F') }}
-                    </option>
-                @endforeach
-            </select>
 
-            <a href="{{ route('calendar.index') }}" id="today"
-               class="backdrop-blur-3xl border-none py-2 px-4 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl {{ $date->isToday() ? 'bg-white text-black' : 'bg-white/30 dark:bg-black/30' }}">
-                Today
+@section('title', 'Calendar')
+
+@section('content')
+    <x-page-header back="{{ route('home') }}" back-label="Home">
+        <x-slot:title>Calendar</x-slot:title>
+        <x-slot:subtitle>{{ $date->translatedFormat('l, F j Y') }}</x-slot:subtitle>
+
+        <x-slot:actions>
+            <a href="{{ route('settings', ['tab' => 'calendar']) }}" class="icon-btn" title="Calendar settings">
+                <i class="bi bi-gear"></i>
             </a>
 
-            <select id="year"
-                    class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none p-2 pe-10 rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer">
-                @for($y = now()->year - 5; $y <= now()->year + 5; $y++)
-                    <option value="{{ $y }}">{{ $y }}</option>
-                @endfor
-            </select>
+            <a href="{{ route('calendar.create', ['date' => $date->toDateString()]) }}" class="btn-primary">
+                <i class="bi bi-plus-lg"></i><span class="hidden sm:inline">Add event</span>
+            </a>
+        </x-slot:actions>
+    </x-page-header>
+
+    <div id="calendar-root"
+         data-base-url="{{ route('calendar.index') }}"
+         data-date="{{ $date->toDateString() }}"
+         data-event-days='@json($eventDays)'
+         data-week-start="{{ $weekStart }}">
+        {{-- Month navigation --}}
+        <div class="glass mb-5 flex items-center justify-between gap-2 p-3 animate-fade-up">
+            <button type="button" class="icon-btn" data-calendar-shift="-1" title="Previous month">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="flex flex-wrap items-center justify-center gap-2">
+                <select id="calendar-month"
+                        class="field-input !w-auto cursor-pointer appearance-none !py-2 text-center font-bold">
+                    @foreach (range(1, 12) as $month)
+                        <option value="{{ $month }}" @selected($month === $date->month)>
+                            {{ Carbon\Carbon::create()->month($month)->format('F') }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select id="calendar-year"
+                        class="field-input !w-auto cursor-pointer appearance-none !py-2 text-center font-bold">
+                    @foreach (range(now()->year - 6, now()->year + 6) as $year)
+                        <option value="{{ $year }}" @selected($year === $date->year)>{{ $year }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="button" class="icon-btn" data-calendar-shift="1" title="Next month">
+                <i class="bi bi-chevron-right"></i>
+            </button>
         </div>
 
-        <div id="calendar" class="grid grid-cols-7 gap-2 text-center mt-10">
-            <!-- Weekdays -->
-            @foreach(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $day)
-                <div class="font-bold mb-5">
-                    {{ $day }}
-                </div>
-            @endforeach
-
-            <!-- Days will be inserted here by JavaScript -->
+        {{-- Day grid (headers + cells rendered by JS) --}}
+        <div class="glass p-3 animate-fade-up sm:p-5" style="animation-delay: 60ms">
+            <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
         </div>
-        <ul class="mt-5 backdrop-blur-3xl bg-white/30 dark:bg-black/30 max-sm:p-3 sm:p-6 rounded-lg max-sm:text-sm space-y-3">
-            @forelse($events as $event)
-                <li class="list-disc ms-5">
-                    {{ $event }}
-                </li>
-            @empty
-                <li class="font-semibold text-gray-400 text-center">
-                    No Events
-                </li>
-            @endforelse
-        </ul>
+
+        {{-- Selected day details --}}
+        <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <section class="glass p-5 animate-fade-up" style="animation-delay: 120ms">
+                <h3 class="heading mb-3 flex items-center gap-2 text-base">
+                    <i class="bi bi-stars text-fuchsia-500"></i>Your events · {{ $date->format('M j') }}
+                </h3>
+
+                @forelse ($events as $event)
+                    <div class="group flex items-center gap-3 rounded-xl border-l-4 border-violet-500 bg-violet-500/10 px-4 py-3 transition-colors hover:bg-violet-500/20 dark:border-fuchsia-500 dark:bg-white/[0.04]">
+                        <span class="shrink-0 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 px-2 py-1 text-xs font-bold text-white shadow-sm">
+                            {{ $event->starts_at->format('H:i') }}
+                        </span>
+
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-bold">{{ $event->title }}</p>
+
+                            @if ($event->description)
+                                <p class="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $event->description }}</p>
+                            @endif
+
+                            @if ($event->address)
+                                <p class="truncate text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ $event->address }}
+                                </p>
+                            @endif
+                        </div>
+
+                        <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <a href="{{ route('calendar.edit', $event) }}" class="icon-btn size-8 !border-0 !bg-transparent" title="Edit event">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+
+                            <form method="POST" action="{{ route('calendar.destroy', $event) }}">
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" data-confirm="Delete this event?" class="icon-btn size-8 !border-0 !bg-transparent hover:!text-rose-500" title="Delete event">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                        Nothing planned — enjoy the calm.
+                    </p>
+                @endforelse
+            </section>
+
+            <section class="glass p-5 animate-fade-up" style="animation-delay: 180ms" @if (! $holidaysEnabled) hidden @endif>
+                <h3 class="heading mb-3 flex items-center gap-2 text-base">
+                    <i class="bi bi-globe-americas text-sky-500"></i>Holidays &amp; observances
+                </h3>
+
+                @forelse ($holidays as $holiday)
+                    <div class="flex items-start gap-2.5 rounded-xl bg-sky-500/10 px-4 py-3">
+                        <i class="bi bi-flag-fill mt-0.5 shrink-0 text-sky-500"></i>
+                        <p class="text-sm leading-relaxed">{{ $holiday }}</p>
+                    </div>
+                @empty
+                    <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                        No holidays on this day.
+                    </p>
+                @endforelse
+            </section>
+        </div>
     </div>
-
-    <form action="{{ route('calendar.index') }}" method="GET">
-
-    </form>
 @endsection
-@push('script')
-    <script>
-        function SetDate(element) {
-            const yearEl = document.querySelector('#year');
-            const monthEl = document.querySelector('#month');
-
-            const year = yearEl.options[yearEl.selectedIndex].value;
-            const month = monthEl.options[monthEl.selectedIndex].value;
-            const day = element.textContent;
-
-            // const date = new Date(year, month - 1, day);
-            const date = `${year}-${month}-${day}`;
-
-            window.location.replace('{{ route('calendar.index') }}?date=' + date);
-        }
-
-        function generateCalendar(month, year) {
-            const calendar = document.getElementById('calendar');
-            // Clear existing days (keep the weekdays)
-            while (calendar.children.length > 7) {
-                calendar.removeChild(calendar.lastChild);
-            }
-
-            const date = new Date(year, month - 1);
-            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-            const daysInMonth = new Date(year, month, 0).getDate();
-
-            // Add blank days before the 1st day of month
-            for (let i = 0; i < firstDay; i++) {
-                const emptyCell = document.createElement('div');
-                calendar.appendChild(emptyCell);
-            }
-
-            // Add actual days
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayCell = document.createElement('div');
-                dayCell.textContent = day;
-
-                const today = new Date();
-                const isToday =
-                    day === today.getDate() &&
-                    month == (today.getMonth() + 1) &&
-                    year == today.getFullYear();
-
-                const isSelectedDay =
-                    day == '{{ $date->day }}' &&
-                    month == '{{ $date->month }}' &&
-                    year == '{{ $date->year }}';
-
-                dayCell.className = "backdrop-blur-3xl max-sm:p-2 sm:p-5 sm:text-3xl rounded-lg hover:bg-white hover:text-black hover:shadow-2xl cursor-pointer " + (isSelectedDay ? 'border-2 border-white font-bold ' : 'border-none ') + (isToday ? "bg-white text-black font-bold" : "bg-white/30 dark:bg-black/30");
-                dayCell.onclick = () => SetDate(dayCell)
-                calendar.appendChild(dayCell);
-            }
-        }
-
-        window.addEventListener('beforeunload', function () {
-            document.body.style.cursor = 'wait';
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const monthSelect = document.getElementById('month');
-            const yearSelect = document.getElementById('year');
-
-            const now = new Date();
-            // monthSelect.value = now.getMonth() + 1;
-            monthSelect.value = '{{ $date->month }}';
-            yearSelect.value = '{{ $date->year }}';
-
-            // yearSelect.value = now.getFullYear();
-
-            function updateCalendar() {
-                generateCalendar(monthSelect.value, yearSelect.value);
-            }
-
-            monthSelect.addEventListener('change', updateCalendar);
-            yearSelect.addEventListener('change', updateCalendar);
-
-            updateCalendar(); // initial render
-        });
-    </script>
-@endpush
-

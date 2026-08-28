@@ -1,94 +1,133 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('weather.index') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="invisible lg:visible">
-            Weather
-        </span>
-    </a>
-@endsection
-@section('title', 'Manage Cities')
-@section('header-e')
 
-@endsection
-@section('top-bar')
-    <form method="get" action="{{ route('weather.cities') }}"
-          class="flex items-center space-x-3 w-full font-semibold">
-        <input type="text" name="search" value="{{ $search }}"
-               class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border-none placeholder-gray-400 rounded-full py-2 px-5 w-full"
-               placeholder="Search city name">
-        <button type="submit"
-                class="flex items-center sm:space-x-3 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-full py-2 px-3 cursor-pointer hover:shadow-2xl hover:text-blue-500">
-            <i class="bi bi-search"></i>
-            <span class="max-sm:hidden">
-                Search
-            </span>
-        </button>
-    </form>
-@endsection
+@section('title', 'Manage Cities')
+
+@php($homeTown = app(\App\Contracts\SettingRepository::class)->get('home-town'))
+
 @section('content')
-    <ul class="grid max-sm:grid-cols-1 sm:grid-cols-3 gap-2 w-full max-sm:mt-5">
-        @if(count($cities))
-            @foreach($cities as $city)
-                <li class="flex items-center space-x-3 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg w-full max-sm:p-3 sm:p-6">
-                    <a href="{{ route('weather.data', $city) }}" class="grid grid-cols-3 gap-10 w-full">
-                        <span class="font-bold max-sm:text-4xl sm:text-6xl">
-                            {{ round($city->temperature) }}°C
-                        </span>
-                        <div class="flex flex-col col-span-2">
-                            <span class="font-semibold max-sm:text-lg sm:text-3xl">
-                                {{ $city->name }}
-                            </span>
-                            <span class="max-sm:text-xs sm:text-md font-semibold">
-                                {{ $city->main }}
-                            </span>
-                        </div>
-                    </a>
-                    <div class="flex justify-end items-center space-x-3">
+    <x-page-header back="{{ route('weather.index') }}" back-label="Weather">
+        <x-slot:title>Manage Cities</x-slot:title>
+        <x-slot:subtitle>{{ $cities->count() }} saved</x-slot:subtitle>
+    </x-page-header>
+
+    {{-- Search --}}
+    <form method="GET" action="{{ route('weather.cities.index') }}"
+          class="glass mb-5 flex items-center gap-2 p-2 animate-fade-up">
+        <i class="bi bi-search ms-3 shrink-0 text-slate-400"></i>
+
+        <input type="search" name="search" value="{{ $search }}" autocomplete="off"
+               class="w-full bg-transparent py-2 text-sm font-semibold outline-none placeholder:text-slate-400"
+               placeholder="Search your cities, or any city worldwide..."/>
+
+        @if (filled($search))
+            <a href="{{ route('weather.cities.index') }}" class="icon-btn !size-9 !border-0 !bg-transparent" title="Clear search">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        @endif
+
+        <button type="submit" class="btn-primary shrink-0">Search</button>
+    </form>
+
+    @if (isset($error))
+        <div class="glass mb-4 flex items-center gap-3 border-l-4 !border-l-rose-500 p-4">
+            <i class="bi bi-exclamation-circle-fill shrink-0 text-xl text-rose-500"></i>
+            <p class="text-sm font-bold">{{ $error }}</p>
+        </div>
+    @endif
+
+    <ul class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        @forelse ($cities as $city)
+            <li class="glass glass-hover flex items-center gap-4 p-4 animate-fade-up"
+                style="animation-delay: {{ ($loop->index % 10) * 50 }}ms">
+                <a href="{{ route('weather.index', ['city' => $city->name]) }}" class="flex min-w-0 flex-1 items-center gap-4">
+                    <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400/20 to-blue-600/20 text-2xl text-sky-600 dark:text-sky-300">
+                        <i class="bi {{ weatherIcon($city->main) }}"></i>
+                    </span>
+
+                    <div class="min-w-0 flex-1">
+                        <p class="flex items-center gap-1.5 truncate font-bold sm:text-lg">
+                            {{ $city->name }}
+                            @if ($city->name === $homeTown)
+                                <i class="bi bi-star-fill shrink-0 text-sm text-amber-400" title="Home town"></i>
+                            @endif
+                        </p>
+                        <p class="truncate text-xs font-bold capitalize text-slate-500 dark:text-slate-400">
+                            {{ $city->main ?? '—' }}
+                        </p>
+                    </div>
+
+                    <span class="heading shrink-0 text-3xl sm:text-4xl">
+                        {{ round($city->temperature) }}{{ temperatureUnitSymbol($weatherUnits) }}
+                    </span>
+                </a>
+
+                <div class="flex shrink-0 gap-1.5">
+                    <form method="POST" action="{{ route('weather.set', $city) }}">
                         @csrf
-                        <a href="{{ route('weather.set', $city) }}"
-                           class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-full py-2 px-3 w-min hover:shadow-2xl hover:text-yellow-500">
-                            <i class="bi bi-star{{ $city->isHomeTown() ? '-fill' : '' }}"></i>
-                        </a>
-                        <a href="{{ route('weather.delete', $city) }}"
-                           class="backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-full py-2 px-3 w-min hover:shadow-2xl hover:text-red-500">
-                            <i class="bi bi-trash3-fill"></i>
-                        </a>
+
+                        <button type="submit" class="icon-btn hover:!text-amber-400" title="{{ $city->isHomeTown() ? 'Unset home town' : 'Set as home town' }}">
+                            <i class="bi bi-star{{ $city->isHomeTown() ? '-fill text-amber-400' : '' }}"></i>
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('weather.refresh', $city) }}">
+                        @csrf
+
+                        <button type="submit" class="icon-btn hover:!text-sky-500" title="Refresh snapshot">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('weather.destroy', $city) }}">
+                        @csrf
+                        @method('DELETE')
+
+                        <button type="submit" data-confirm="Move {{ $city->name }} to the recycle bin?" class="icon-btn hover:!text-rose-500" title="Remove city">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </form>
+                </div>
+            </li>
+        @empty
+            @if ($remote && isset($remote['main']))
+                <li class="col-span-full">
+                    <div class="glass flex items-center gap-4 p-4 animate-pop-in">
+                        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400/20 to-blue-600/20 text-2xl text-sky-600 dark:text-sky-300">
+                            <i class="bi {{ weatherIcon($remote['weather'][0]['main'] ?? null) }}"></i>
+                        </span>
+
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-bold sm:text-lg">{{ $remote['name'] }}</p>
+                            <p class="truncate text-xs font-bold capitalize text-slate-500 dark:text-slate-400">
+                                {{ $remote['weather'][0]['description'] ?? '' }}
+                            </p>
+                        </div>
+
+                        <span class="heading shrink-0 text-3xl sm:text-4xl">
+                            {{ round($remote['main']['temp']) }}{{ temperatureUnitSymbol($weatherUnits) }}
+                        </span>
+
+                        <form method="POST" action="{{ route('weather.cities.store') }}" class="shrink-0">
+                            @csrf
+                            <input type="hidden" name="weather" value="{{ json_encode($remote) }}"/>
+
+                            <button type="submit" class="btn-primary">
+                                <i class="bi bi-plus-lg"></i><span>Add</span>
+                            </button>
+                        </form>
                     </div>
                 </li>
-            @endforeach
-        @elseif(!is_null($weather))
-            <li class="sm:col-start-2 grid grid-cols-3 gap-6 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg w-full max-sm:p-3 sm:p-6">
-                    <span class="font-bold max-sm:text-5xl sm:text-6xl">
-                        {{ round($weather['main']['temp']) }}°C
-                    </span>
-                <div class="flex flex-col">
-                        <span class="font-semibold max-sm:text-xl sm:text-3xl">
-                            {{ $weather['name'] }}
-                        </span>
-                    <span class="maz-sm:text-sm sm:text-lg">
-                            {{ $weather['weather'][0]['main'] }}
-                        </span>
-                </div>
-                <form method="post" action="{{ route('weather.cities') }}" class="flex justify-end items-center">
-                    @csrf
-                    <input type="hidden" name="weather" value="{{ json_encode($weather) }}">
-                    <button type="submit"
-                            class="flex items-center sm:space-x-3 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-full py-2 max-sm:px-3 sm:ps-2 sm:pe-5 w-min cursor-pointer hover:shadow-2xl">
-                        <i class="bi bi-plus-lg sm:bg-white sm:py-2 sm:px-3 sm:rounded-full sm:text-black"></i>
-                        <span class="max-sm:hidden sm:text-2xl font-semibold">
-                                Add
-                            </span>
-                    </button>
-                </form>
-            </li>
-        @else
-            <li class="text-center sm:col-start-2">
-                <i class="bi bi-info-circle-fill"></i>
-                <span class="ms-1">
-                    No result
-                </span>
-            </li>
-        @endif
+            @elseif (! filled($search))
+                <li class="col-span-full py-6">
+                    <x-empty-state icon="bi-geo-alt" title="No cities saved yet">
+                        <x-slot:description>Search above to find and add your first city.</x-slot:description>
+                    </x-empty-state>
+                </li>
+            @else
+                <li class="col-span-full py-6 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                    No saved city matches "{{ $search }}".
+                </li>
+            @endif
+        @endforelse
     </ul>
 @endsection

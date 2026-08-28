@@ -2,58 +2,97 @@
 
 namespace App\Services;
 
+use App\Contracts\SettingRepository;
+use App\Contracts\WeatherService as WeatherServiceContract;
+use App\Exceptions\WeatherException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
-class OpenWeatherService
+/**
+ * OpenWeatherMap implementation of the weather contract.
+ */
+class OpenWeatherService implements WeatherServiceContract
 {
-    protected mixed $apiKey;
-    protected mixed $baseUrl;
+    /**
+     * HTTP timeout in seconds for API calls.
+     *
+     * @var int
+     */
+    protected const TIMEOUT = 10;
 
-    public function __construct()
-    {
-        $this->apiKey = config('services.openweather.key');
-        $this->baseUrl = config('services.openweather.base_url');
+    /**
+     * Create a new service instance.
+     *
+     * @param  SettingRepository  $settings  Provides the preferred measurement unit.
+     */
+    public function __construct(
+        protected ?string $apiKey = null,
+        protected string $baseUrl = 'https://api.openweathermap.org/data/2.5',
+        protected SettingRepository $settings = new \App\Services\SettingService,
+    ) {
+        $this->apiKey ??= config('services.openweather.key');
+        $this->baseUrl = rtrim($this->baseUrl, '/');
     }
 
     /**
-     * @param string $city
-     * @param string $units
-     * @return array|mixed
+     * {@inheritDoc}
      */
-    public function getWeatherByCity(string $city, string $units = 'metric'): mixed
+    public function byCity(string $city, ?string $units = null): array
     {
-        try {
-            $response = Http::get("{$this->baseUrl}/weather", [
-                'q' => $city,
-                'appid' => $this->apiKey,
-                'units' => $units,
-            ])->json();
-        } catch (\Exception $exception) {
-            $response = [];
-        }
-
-        return $response;
+        return $this->fetch(['q' => $city], $units);
     }
 
     /**
-     * @param float $lat
-     * @param float $lon
-     * @param string $units
-     * @return array|mixed
+     * {@inheritDoc}
      */
-    public function getWeatherByCoordinates(float $lat, float $lon, string $units = 'metric'): mixed
+    public function byCoordinates(float $latitude, float $longitude, ?string $units = null): array
     {
-        try {
-            $response = Http::get("{$this->baseUrl}/weather", [
-                'lat' => $lat,
-                'lon' => $lon,
-                'appid' => $this->apiKey,
-                'units' => $units,
-            ])->json();
-        } catch (\Exception $exception) {
-            $response = [];
+        return $this->fetch(['lat' => $latitude, 'lon' => $longitude], $units);
+    }
+
+    /**
+     * Resolve the unit system configured by the user.
+     */
+    protected function defaultUnits(): string
+    {
+        return (string) ($this->settings->get('weather_units') ?? config('services.openweather.units', 'metric'));
+    }
+
+    /**
+     * Perform the API request and normalise the response.
+     *
+     * @param  array<string, mixed>  $query
+     *
+     * @throws WeatherException
+     */
+    protected function fetch(array $query, ?string $units): array
+    {
+        if (empty($this->apiKey)) {
+            throw new WeatherException('No OpenWeatherMap API key is configured.');
         }
 
-        return $response;
+        try {
+            $response = Http::timeout(self::TIMEOUT)->get("{$this->baseUrl}/weather", array_merge($query, [
+                'appid' => $this->apiKey,
+                'units' => $units ?? $this->defaultUnits(),
+            ]));
+        } catch (ConnectionException $exception) {
+            Log::warning('OpenWeather request timed out', ['query' => $query]);
+
+            throw new WeatherException('Could not reach the weather service. Check your internet connection.', previous: $exception);
+        }
+
+        if ($response->status() === 404) {
+            throw WeatherException::unknownLocation((string) ($query['q'] ?? 'the given coordinates'));
+        }
+
+        if ($response->failed()) {
+            Log::warning('OpenWeather request failed', ['status' => $response->status()]);
+
+            throw new WeatherException('The weather service returned an error. Please try again later.');
+        }
+
+        return $response->json();
     }
 }

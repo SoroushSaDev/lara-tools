@@ -2,10 +2,9 @@
 
 namespace App\Providers;
 
+use Native\Laravel\Contracts\ProvidesPhpIni;
 use Native\Laravel\Facades\Menu;
 use Native\Laravel\Facades\Window;
-use Native\Laravel\Facades\MenuBar;
-use Native\Laravel\Contracts\ProvidesPhpIni;
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
@@ -15,10 +14,28 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
-        Window::open();
+        Window::open()
+            ->width(1280)
+            ->height(820)
+            ->minWidth(380)
+            ->minHeight(520);
+
         Menu::create(
             Menu::make(
-                Menu::route('home', 'Home'),
+                Menu::route('home', 'Dashboard'),
+                Menu::separator(),
+                Menu::route('notes.index', 'Notes'),
+                Menu::route('todos.index', 'Todo Lists'),
+                Menu::route('calendar.index', 'Calendar'),
+                Menu::route('music.index', 'Music Player'),
+                Menu::route('calculator', 'Calculator'),
+                Menu::route('clock', 'Clock'),
+                Menu::route('converter', 'Unit Converter'),
+                Menu::route('weather.index', 'Weather'),
+                Menu::separator(),
+                Menu::route('bin.index', 'Recycle Bin'),
+                Menu::route('settings', 'Settings'),
+                Menu::route('about', 'About'),
             )->label('Navigate'),
         );
     }
@@ -28,7 +45,6 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function phpIni(): array
     {
-        return [
-        ];
+        return [];
     }
 }

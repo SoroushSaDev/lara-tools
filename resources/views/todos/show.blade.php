@@ -1,56 +1,76 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('todos.index') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="hidden lg:block">
-            Todo List
-        </span>
-    </a>
-@endsection
-@section('title', 'Todo')
-@section('header-e')
-    <a href="{{ route('todos.edit', $todo) }}"
-       class="flex items-center space-x-2 text-xl hover:text-yellow-500 hover:cursor-pointer">
-        <i class="bi bi-pencil-fill"></i>
-        <span class="hidden lg:block">
-            Edit Todo
-        </span>
-    </a>
-    <button type="button"
-            class="flex items-center space-x-2 text-xl hover:text-red-500 hover:cursor-pointer"
-            onClick="document.querySelector('#delete').submit()">
-        <i class="bi bi-trash3-fill"></i>
-        <span class="hidden lg:block">
-            Delete
-        </span>
-    </button>
-@endsection
+
+@section('title', $todo->title)
+
+@php($progress = $todo->progress())
+
 @section('content')
-    <div class="flex flex-col space-y-3 max-sm:w-full sm:w-[600px] h-100">
-        <span class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
-            {{ $todo->title }}
-        </span>
-        <p class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
-            {{ $todo->description }}
-        </p>
-        <h3 class="text-center text-2xl font-semibold col-start-2">
-            Items
-        </h3>
-        @forelse(json_decode($todo->items) as $item)
-            <div
-                class="flex justify-between items-center font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
-                <p>
-                    {{ $item->text }}
-                </p>
-                <input type="checkbox" @checked($item->completed)
-                class="w-4 h-4 text-blue-600 backdrop-blur-3xl bg-white/30 border-none rounded-sm hover:cursor-pointer hover:shadow-2xl focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-black/30">
+    <div data-todo-page data-todo-id="{{ $todo->id }}">
+        <x-page-header back="{{ route('todos.index') }}" back-label="Todo Lists">
+            <x-slot:title>{{ str($todo->title)->limit(30) }}</x-slot:title>
+            <x-slot:subtitle data-progress-text>{{ $progress['completed'] }}/{{ $progress['total'] }} done</x-slot:subtitle>
+
+            <x-slot:actions>
+                <a href="{{ route('todos.edit', $todo) }}" class="icon-btn hover:!bg-amber-400/20" title="Edit list">
+                    <i class="bi bi-pencil"></i>
+                </a>
+
+                <form method="POST" action="{{ route('todos.destroy', $todo) }}">
+                    @csrf
+                    @method('DELETE')
+
+                    <button type="submit" data-confirm="Move this list to the recycle bin?" class="icon-btn hover:!text-rose-500" title="Delete list">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </form>
+            </x-slot:actions>
+        </x-page-header>
+
+        @if ($todo->description)
+            <p class="mb-4 text-sm font-semibold leading-relaxed text-slate-600 animate-fade-up dark:text-slate-400">
+                {{ $todo->description }}
+            </p>
+        @endif
+
+        {{-- Overall progress --}}
+        <div class="glass mb-5 p-4 animate-fade-up" style="animation-delay: 60ms">
+            <div class="progress-track">
+                <span class="progress-fill block" data-progress-bar style="width: {{ $progress['percent'] }}%"></span>
             </div>
-        @empty
-            There are no items
-        @endforelse
+        </div>
+
+        {{-- Checklist --}}
+        <ul class="flex flex-col gap-2.5">
+            @forelse ($todo->items() as $index => $item)
+                <li class="glass todo-item flex items-center gap-3.5 p-3.5 animate-fade-up"
+                    style="animation-delay: {{ min(80 + $index * 40, 480) }}ms">
+                    <input type="checkbox"
+                           class="size-5 shrink-0 cursor-pointer accent-violet-600 transition-transform duration-200 hover:scale-110 dark:accent-fuchsia-500"
+                           {{ $item['completed'] ? 'checked' : '' }}
+                           data-toggle-url="{{ route('todos.items.toggle', [$todo, $index]) }}"/>
+
+                    <p data-item-text
+                       class="min-w-0 flex-1 break-words transition-all duration-300 {{ $item['completed'] ? 'todo-item-done' : '' }}">
+                        {{ $item['text'] }}
+                    </p>
+
+                    @if ($item['completed'])
+                        <i class="bi bi-check-circle-fill shrink-0 text-emerald-500"></i>
+                    @endif
+                </li>
+            @empty
+                <li class="py-6">
+                    <x-empty-state icon="bi-ui-checks" title="Empty list">
+                        <x-slot:description>Edit the list to add checklist items.</x-slot:description>
+
+                        <x-slot:action>
+                            <a href="{{ route('todos.edit', $todo) }}" class="btn-primary mt-2">
+                                <i class="bi bi-pencil"></i>Add items
+                            </a>
+                        </x-slot:action>
+                    </x-empty-state>
+                </li>
+            @endforelse
+        </ul>
     </div>
-    <form id="delete" method="POST" action="{{ route('todos.destroy', $todo) }}" class="hidden">
-        @csrf
-        @method('DELETE')
-    </form>
 @endsection

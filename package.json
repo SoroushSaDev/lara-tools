@@ -1,4 +1,5 @@
 {
+    "name": "lara-tools",
     "private": true,
     "type": "module",
     "scripts": {
@@ -14,6 +15,7 @@
         "vite": "^6.2.4"
     },
     "dependencies": {
+        "@hotwired/turbo": "^8.0.23",
         "bootstrap-icons": "^1.12.1"
     }
 }

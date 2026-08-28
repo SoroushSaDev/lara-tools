@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | The semantic version shown on the About page and in the changelog.
+    | Bump this together with config/changelog.php when shipping features.
+    |
+    */
+
+    'version' => '1.1.0',
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

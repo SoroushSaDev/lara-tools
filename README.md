@@ -1,61 +1,166 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+    <span class="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600"></span>
 </p>
 
-## About Laravel
+<h1 align="center">LaraTools</h1>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p align="center">
+    <strong>A cross-platform desktop companion app built with Laravel, NativePHP and Tailwind CSS.</strong>
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Introduction
 
-## Learning Laravel
+LaraTools bundles a curated set of everyday productivity tools into a single,
+native desktop application. It runs on the same PHP codebase you would deploy
+to the web — packaged for the desktop with [NativePHP](https://nativephp.com)
+(Electron) and styled with Tailwind CSS v4.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Features
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+| Tool | Highlights |
+| --- | --- |
+| **Dashboard** | Live counters for notes, open checklist items, upcoming events and tracks |
+| **Notes** | Create, edit, browse and search your quick thoughts |
+| **Todo Lists** | Checklists with per-item completion, live progress bars and preserved state on edit |
+| **Calendar** | Month grid with event dots, holiday & observance feed, full event CRUD |
+| **Music Player** | Import files/folders from disk, ID3 metadata + album art extraction, seekable streaming player with shuffle/repeat/volume |
+| **Calculator** | Safe expression engine (no `eval`) with correct operator precedence and keyboard support |
+| **Weather** | Current conditions per saved city, home-town pinning, geolocation lookup, metric/imperial units |
+| **Recycle Bin** | Every delete is restorable until purged — across all modules |
+| **Settings** | Light / dark / system theme, temperature units |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Tech Stack
 
-## Laravel Sponsors
+- [Laravel 12](https://laravel.com) — application framework
+- [NativePHP (Electron)](https://nativephp.com) — desktop packaging, native dialogs & menus
+- [Tailwind CSS v4](https://tailwindcss.com) + Vite — design system, theming and animations
+- [Bootstrap Icons](https://icons.getbootstrap.com) — iconography
+- SQLite — local storage (no server required)
+- [getID3](https://github.com/JamesHeinrich/getID3) — audio metadata parsing
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Requirements
 
-### Premium Partners
+- PHP >= 8.2 (with `sqlite3`, `fileinfo` and `mbstring` extensions)
+- Composer
+- Node.js >= 20 and npm
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+## Installation
 
-## Contributing
+### 1. Clone and install dependencies
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+git clone <repository-url> lara-tools
+cd lara-tools
 
-## Code of Conduct
+composer install
+npm install
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 2. Configure the environment
 
-## Security Vulnerabilities
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Then add your OpenWeatherMap API key (free tier is sufficient):
+
+```dotenv
+OPENWEATHER_API_KEY=your_api_key_here
+```
+
+> Get a key at [openweathermap.org/api](https://openweathermap.org/api).
+
+### 3. Prepare the database and assets
+
+```bash
+touch database/database.sqlite
+php artisan migrate
+npm run build
+```
+
+### Running in development
+
+Run the web server, queue worker, log tail and Vite dev server together:
+
+```bash
+composer dev
+```
+
+…or run it as a desktop app during development:
+
+```bash
+composer native:dev
+```
+
+This launches a native Electron window pointing at your local Laravel app,
+with hot reloading through Vite.
+
+> **First desktop run only:** the Electron toolchain (Node dependencies and
+> the bundled PHP runtime) must be installed once before `native:dev`:
+>
+> ```bash
+> php artisan native:install   # or: php artisan native:serve (without -D) once
+> ```
+>
+> `composer native:dev` starts with `-D`, which skips re-installing those
+> dependencies on every launch — much faster and immune to flaky networks.
+> If you are behind a restricted network, export
+> `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` before running
+> `native:install`.
+
+### Building for production
+
+Build the front-end assets first, then package the desktop binary:
+
+```bash
+npm run build
+php artisan native:build
+```
+
+The compiled installer/executable is written to the `dist/` directory.
+
+## Testing & Code Style
+
+```bash
+composer test          # runs the PHPUnit suite against an in-memory database
+./vendor/bin/pint      # fixes code style (PSR-12 / Laravel preset)
+```
+
+## Configuration Reference
+
+| Variable | Purpose |
+| --- | --- |
+| `OPENWEATHER_API_KEY` | API key used by the weather module |
+| `OPENWEATHER_BASE_URL` | Override the OpenWeatherMap endpoint (optional) |
+| `DB_CONNECTION` / `DB_DATABASE` | Local database (SQLite by default) |
+
+User preferences (theme, weather units, home town) are stored in the local
+`settings` table at runtime — no environment changes needed.
+
+## Project Structure
+
+```
+app/
+├── Contracts/            # Interfaces: settings, weather, holidays
+├── Exceptions/           # Domain exceptions (e.g. WeatherException)
+├── Http/
+│   ├── Controllers/      # Thin controllers, one per feature
+│   └── Requests/         # Form validation rules
+├── Models/               # Eloquent models (soft-deletes where restorable)
+├── Providers/            # DI bindings + native window/menu bootstrap
+└── Services/             # Business logic: weather API, music library,
+                          # settings repository, recycle bin, holidays
+resources/
+├── css/app.css           # Design tokens, dark mode, animations, components
+└── js/
+    ├── app.js            # Single entry point
+    └── modules/          # Feature JS: player, calculator engine, calendar,
+                          # todo toggles, theme, toasts, confirm dialogs
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Released under the [MIT license](LICENSE).

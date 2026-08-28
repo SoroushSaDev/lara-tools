@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validation rules shared by todo create/update actions.
+ */
 class TodoRequest extends FormRequest
 {
     /**
@@ -18,14 +20,15 @@ class TodoRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, ValidationRule|array|string>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'title' => 'required',
-            'items.*' => 'nullable',
-            'description' => 'nullable',
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'items' => ['nullable', 'array'],
+            'items.*' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

@@ -2,179 +2,270 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\SettingRepository;
+use App\Contracts\WeatherService;
+use App\Exceptions\WeatherException;
 use App\Models\City;
-use App\Models\Setting;
-use App\Services\OpenWeatherService;
-use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
-use Illuminate\Foundation\Application;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Throwable;
 
+/**
+ * Weather dashboard plus management of saved cities.
+ */
 class WeatherController extends Controller
 {
-    protected OpenWeatherService $weatherService;
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(
+        protected WeatherService $weather,
+        protected SettingRepository $settings,
+    ) {}
 
     /**
-     * @param OpenWeatherService $weatherService
+     * Show the weather dashboard.
+     *
+     * Supports three modes:
+     *  - "?lat=..&lon=.." renders live data for the device location.
+     *  - "?city=Name" renders the saved city matching that name.
+     *  - Without parameters the home town (or first saved city) is shown.
      */
-    public function __construct(OpenWeatherService $weatherService)
+    public function index(Request $request): View
     {
-        $this->weatherService = $weatherService;
-    }
+        $city = $this->resolveCity($request->query('city'));
 
-    /**
-     * @return Factory|View|Application|\Illuminate\View\View|object
-     */
-    public function index(Request $request)
-    {
-        $home = Setting::where('key', 'home-town')?->first() ?? null;
-        $city = City::firstWhere('name', ($request->has('city') ? $request['city'] : $home?->value ?? null)) ?? null;
-        $weatherService = new OpenWeatherService();
-        $weather = $weatherService->getWeatherByCity($city?->name ?? '') ?? null;
+        $weather = null;
+        $error = null;
 
-        return view('weather.index', compact('city', 'weather'));
-    }
-
-    /**
-     * @param City $city
-     * @return RedirectResponse
-     */
-    public function data(City $city)
-    {
-        $weatherService = new OpenWeatherService();
-        $weather = $weatherService->getWeatherByCity($city->name);
-
-        return redirect()->route('weather.index', ['city' => $city->name, 'weather' => $weather]);
-    }
-
-    /**
-     * @param $city
-     * @return JsonResponse
-     */
-    public function byCity($city)
-    {
-        $weather = $this->weatherService->getWeatherByCity($city);
-        return response()->json($weather);
-    }
-
-    /**
-     * @param $lat
-     * @param $lon
-     * @return JsonResponse
-     */
-    public function byCoordinates($lat, $lon)
-    {
-        $weather = $this->weatherService->getWeatherByCoordinates($lat, $lon);
-        return response()->json($weather);
-    }
-
-    /**
-     * @param Request $request
-     * @return Factory|View|Application|RedirectResponse|\Illuminate\View\View|object
-     * @throws Throwable
-     */
-    public function cities(Request $request)
-    {
-        if ($request->isMethod('get')) {
-            if ($request->has('search') && $request->search != '') {
-                $search = __Title($request['search']);
-                $cities = City::where('name', 'like', '%' . $search . '%')->get();
-
-                if (!count($cities)) {
-                    $weatherService = new OpenWeatherService();
-                    $weather = $weatherService->getWeatherByCity($request->search);
-                    if ($weather['cod'] == 404)
-                        $weather = null;
-                } else {
-                    $weather = null;
-                }
-            } else {
-                $search = null;
-                $weather = null;
-                $cities = City::all()->sortByDesc(function ($city) {
-                    $setting = Setting::where('key', 'home-town')->first();
-                    return $setting->value == $city->name;
-                });
-            }
-
-            return view('weather.cities', compact('cities', 'weather', 'search'));
-        } else {
-            $weather = json_decode($request['weather'], true);
-            DB::beginTransaction();
+        if ($city !== null) {
             try {
-                City::create([
-                    'name' => $weather['name'],
-                    'main' => $weather['weather'][0]['main'],
-                    'icon' => $weather['weather'][0]['icon'],
-                    'description' => $weather['weather'][0]['description'],
-                    'coordinates' => json_encode($weather['coord']),
-                    'temperature' => $weather['main']['temp'],
-                    'country_code' => $weather['sys']['country'],
-                    'feels_like' => $weather['main']['feels_like'],
-                    'humidity' => $weather['main']['humidity'],
-                    'pressure' => $weather['main']['pressure'],
-                    'wind_speed' => $weather['wind']['speed'],
-                    'wind_direction' => $weather['wind']['deg'],
-                    'sunrise' => $weather['sys']['sunrise'],
-                    'sunset' => $weather['sys']['sunset'],
-                    'sea_level' => $weather['main']['sea_level'],
-                ]);
-                DB::commit();
-                return redirect()->route('weather.cities')->with('success', 'City added successfully');
-            } catch (\Exception $exception) {
-                DB::rollBack();
-                return redirect()->back()->with('error', $exception);
+                $weather = $this->weather->byCity($city->name);
+            } catch (WeatherException $exception) {
+                $error = $exception->getMessage();
             }
         }
+
+        return view('weather.index', [
+            'city' => $city,
+            'weather' => $weather,
+            'error' => $error,
+            'isLiveLocation' => false,
+        ]);
     }
 
     /**
-     * @param City $city
-     * @return RedirectResponse
+     * Render the dashboard from raw geographic coordinates without saving
+     * anything; used by the "use my location" button on the dashboard.
      */
-    public function homeTown(City $city)
+    public function locate(Request $request): View
     {
-        Setting::where('key', 'home-town')->update(['value' => $city->name ?? '']);
-        return redirect()->back()->with('success', 'HomeCity set successfully');
+        $latitude = (float) $request->query('lat');
+        $longitude = (float) $request->query('lon');
+
+        try {
+            $weather = $this->weather->byCoordinates($latitude, $longitude);
+        } catch (WeatherException $exception) {
+            return view('weather.index', [
+                'city' => null,
+                'weather' => null,
+                'error' => $exception->getMessage(),
+                'isLiveLocation' => true,
+            ]);
+        }
+
+        return view('weather.index', [
+            'city' => null,
+            'weather' => $weather,
+            'error' => null,
+            'isLiveLocation' => true,
+        ]);
     }
 
     /**
-     * @param City $city
-     * @return RedirectResponse
+     * List saved cities and handle free-text lookups against the API.
      */
-    public function update(City $city)
+    public function cities(Request $request): View
     {
-        $weatherService = new OpenWeatherService();
-        $weather = $weatherService->getWeatherByCity($city?->name ?? '') ?? null;
+        $search = trim((string) $request->query('search', ''));
 
-        $city->update([
-            'name' => $weather['name'],
-            'main' => $weather['weather'][0]['main'],
-            'icon' => $weather['weather'][0]['icon'],
-            'description' => $weather['weather'][0]['description'],
-            'coordinates' => json_encode($weather['coord']),
-            'temperature' => $weather['main']['temp'],
-            'country_code' => $weather['sys']['country'],
-            'feels_like' => $weather['main']['feels_like'],
-            'humidity' => $weather['main']['humidity'],
-            'pressure' => $weather['main']['pressure'],
-            'wind_speed' => $weather['wind']['speed'],
-            'wind_direction' => $weather['wind']['deg'],
-            'sunrise' => $weather['sys']['sunrise'],
-            'sunset' => $weather['sys']['sunset'],
-            'sea_level' => $weather['main']['sea_level'],
+        $cities = filled($search)
+            ? City::whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($search).'%'])->orderBy('name')->get()
+            : $this->citiesWithHomeFirst();
+
+        $remote = null;
+        $error = null;
+
+        // Nothing stored locally matches: offer a fresh lookup result instead.
+        if (filled($search) && $cities->isEmpty()) {
+            try {
+                $remote = $this->weather->byCity($search);
+            } catch (WeatherException $exception) {
+                $error = $exception->getMessage();
+            }
+        }
+
+        return view('weather.cities', [
+            'cities' => $cities,
+            'search' => $search,
+            'remote' => $remote,
+            'error' => $error,
+        ]);
+    }
+
+    /**
+     * Persist a city discovered through the API lookup.
+     */
+    public function storeCity(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'weather' => ['required', 'json'],
         ]);
 
-        return redirect()->route('weather.index', ['city' => $city->name, 'weather' => $weather]);
+        $payload = json_decode($validated['weather'], true);
+
+        // Guard against malformed API payloads before touching the database.
+        foreach (['name', 'coord', 'weather.0', 'main', 'sys', 'wind'] as $pointer) {
+            if (data_get($payload, $pointer) === null) {
+                return back()->with('error', 'The weather service returned incomplete data.');
+            }
+        }
+
+        $city = City::create([
+            'name' => $payload['name'],
+            'main' => $payload['weather'][0]['main'],
+            'icon' => $payload['weather'][0]['icon'] ?? '',
+            'description' => $payload['weather'][0]['description'] ?? '',
+            'coordinates' => $payload['coord'],
+            'temperature' => $payload['main']['temp'],
+            'country_code' => $payload['sys']['country'],
+            'feels_like' => $payload['main']['feels_like'],
+            'humidity' => $payload['main']['humidity'],
+            'pressure' => $payload['main']['pressure'],
+            'wind_speed' => $payload['wind']['speed'] ?? 0,
+            'wind_direction' => $payload['wind']['deg'] ?? 0,
+            'sunrise' => isset($payload['sys']['sunrise']) ? date('Y-m-d H:i:s', (int) $payload['sys']['sunrise']) : now(),
+            'sunset' => isset($payload['sys']['sunset']) ? date('Y-m-d H:i:s', (int) $payload['sys']['sunset']) : now(),
+            'sea_level' => $payload['main']['sea_level'] ?? $payload['main']['pressure'],
+        ]);
+
+        return redirect()
+            ->route('weather.cities')
+            ->with('success', "{$city->name} added.");
     }
 
-    public function delete(City $city)
+    /**
+     * Toggle the home-town flag for the given city.
+     */
+    public function setHomeTown(City $city): RedirectResponse
     {
+        if ($city->isHomeTown()) {
+            $this->settings->forget('home-town');
+
+            return back()->with('info', "{$city->name} is no longer your home town.");
+        }
+
+        $this->settings->set('home-town', $city->name);
+
+        return back()->with('success', "{$city->name} is now your home town.");
+    }
+
+    /**
+     * Refresh a city's stored weather snapshot.
+     */
+    public function refresh(City $city): RedirectResponse
+    {
+        try {
+            $this->applySnapshot($city, $this->weather->byCity($city->name));
+            $city->save();
+        } catch (WeatherException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('weather.index', ['city' => $city->name])
+            ->with('success', "{$city->name} updated.");
+    }
+
+    /**
+     * Soft-delete the given city so it can be restored from the bin.
+     */
+    public function destroy(City $city): RedirectResponse
+    {
+        if ($city->isHomeTown()) {
+            $this->settings->forget('home-town');
+        }
+
         $city->delete();
-        return redirect()->back()->with('success', 'City deleted successfully');
+
+        return redirect()
+            ->route('weather.cities')
+            ->with('success', "{$city->name} moved to the recycle bin.");
+    }
+
+    /**
+     * Resolve which saved city the dashboard should show.
+     */
+    protected function resolveCity(?string $name): ?City
+    {
+        if (filled($name)) {
+            return City::whereRaw('LOWER(name) = ?', [mb_strtolower(trim($name))])->first();
+        }
+
+        $homeTown = $this->settings->get('home-town');
+
+        return ($homeTown ? $this->findByName($homeTown) : null)
+            ?? City::orderBy('id')->first();
+    }
+
+    /**
+     * All saved cities ordered with the home town first.
+     *
+     * @return \Illuminate\Support\Collection<int, City>
+     */
+    protected function citiesWithHomeFirst(): \Illuminate\Support\Collection
+    {
+        return City::query()
+            ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END', [(string) $this->settings->get('home-town')])
+            ->orderBy('name')
+            ->get()
+            ->values();
+    }
+
+    /**
+     * Case-insensitive lookup of a saved city by name.
+     */
+    protected function findByName(string $name): ?City
+    {
+        return City::whereRaw('LOWER(name) = ?', [mb_strtolower(trim($name))])->first();
+    }
+
+    /**
+     * Write an API payload onto a city model (call save() to persist).
+     *
+     * Missing keys fall back to the values already stored on the model so a
+     * partial response can never blank out existing snapshot data.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function applySnapshot(City $city, array $payload): void
+    {
+        $city->fill([
+            'name' => $payload['name'] ?? $city->name,
+            'main' => $payload['weather'][0]['main'] ?? $city->main ?? 'Unknown',
+            'icon' => $payload['weather'][0]['icon'] ?? $city->icon ?? '',
+            'description' => $payload['weather'][0]['description'] ?? $city->description ?? '',
+            'coordinates' => $payload['coord'] ?? $city->coordinates,
+            'temperature' => $payload['main']['temp'] ?? $city->temperature,
+            'country_code' => $payload['sys']['country'] ?? $city->country_code ?? '',
+            'feels_like' => $payload['main']['feels_like'] ?? $city->feels_like,
+            'humidity' => $payload['main']['humidity'] ?? $city->humidity,
+            'pressure' => $payload['main']['pressure'] ?? $city->pressure,
+            'wind_speed' => $payload['wind']['speed'] ?? $city->wind_speed ?? 0,
+            'wind_direction' => $payload['wind']['deg'] ?? $city->wind_direction ?? 0,
+            'sunrise' => isset($payload['sys']['sunrise']) ? date('Y-m-d H:i:s', (int) $payload['sys']['sunrise']) : $city->sunrise,
+            'sunset' => isset($payload['sys']['sunset']) ? date('Y-m-d H:i:s', (int) $payload['sys']['sunset']) : $city->sunset,
+            'sea_level' => $payload['main']['sea_level'] ?? $city->sea_level ?? 0,
+        ]);
     }
 }

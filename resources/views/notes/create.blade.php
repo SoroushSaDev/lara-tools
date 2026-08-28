@@ -1,28 +1,17 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('notes.index') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="invisible lg:visible">
-            Notes
-        </span>
-    </a>
-@endsection
+
 @section('title', 'New Note')
-@section('header-e')
-    <button type="button"
-        class="flex items-center space-x-2 text-xl hover:text-green-500 hover:cursor-pointer"
-        onClick="document.querySelector('#note').submit()">
-        <i class="bi bi-check2-circle"></i>
-        <span class="hidden lg:block">
-            Save
-        </span>
-    </button>
-@endsection
+
 @section('content')
-    <form id="note" class="flex flex-col space-y-3 h-100 max-sm:w-full sm:w-[600px]" method="POST" action="{{ route('notes.store') }}">
-        @CSRF
-        <input type="text" name="title" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md p-3" placeholder="Title"/>
-        <textarea name="body" class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 placeholder-gray-400 border-none rounded-md h-full resize-none p-3"
-            placeholder="Body"></textarea>
-    </form>
+    <x-page-header back="{{ route('notes.index') }}" back-label="Notes">
+        <x-slot:title>New Note</x-slot:title>
+
+        <x-slot:actions>
+            <button type="button" class="btn-primary" onclick="document.getElementById('note-form').requestSubmit()">
+                <i class="bi bi-check-lg"></i><span>Save</span>
+            </button>
+        </x-slot:actions>
+    </x-page-header>
+
+    @include('notes.partial.form', ['action' => route('notes.store')])
 @endsection

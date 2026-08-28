@@ -1,41 +1,29 @@
 @extends('layouts.main')
-@section('header-s')
-    <a href="{{ route('notes.index') }}" class="flex items-center space-x-2 text-xl hover:text-gray-300">
-        <i class="bi bi-chevron-left"></i>
-        <span class="hidden lg:block">
-            Notes
-        </span>
-    </a>
-@endsection
-@section('title', 'Note')
-@section('header-e')
-    <a href="{{ route('notes.edit', $note) }}"
-       class="flex items-center space-x-2 text-xl hover:text-yellow-500 hover:cursor-pointer">
-        <i class="bi bi-pencil-fill"></i>
-        <span class="hidden lg:block">
-            Edit Note
-        </span>
-    </a>
-    <button type="button"
-            class="flex items-center space-x-2 text-xl hover:text-red-500 hover:cursor-pointer"
-            onClick="document.querySelector('#delete').submit()">
-        <i class="bi bi-trash3-fill"></i>
-        <span class="hidden lg:block">
-            Delete
-        </span>
-    </button>
-@endsection
+
+@section('title', $note->title ?? 'Note')
+
 @section('content')
-    <div class="flex flex-col space-y-3 h-100 max-sm:w-full sm:w-[600px]">
-        <span class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md p-3">
-            {{ $note->title }}
-        </span>
-        <p class="font-semibold backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-md h-full resize-none p-3">
-            {{ $note->body }}
-        </p>
-    </div>
-    <form id="delete" method="POST" action="{{ route('notes.destroy', $note) }}" class="hidden">
-        @csrf
-        @method('DELETE')
-    </form>
+    <x-page-header back="{{ route('notes.index') }}" back-label="Notes">
+        <x-slot:title>{{ str($note->title ?? 'Untitled')->limit(28) }}</x-slot:title>
+        <x-slot:subtitle>Last edited {{ $note->updated_at?->diffForHumans() }}</x-slot:subtitle>
+
+        <x-slot:actions>
+            <a href="{{ route('notes.edit', $note) }}" class="icon-btn hover:!bg-amber-400/20" title="Edit note">
+                <i class="bi bi-pencil"></i>
+            </a>
+
+            <form method="POST" action="{{ route('notes.destroy', $note) }}">
+                @csrf
+                @method('DELETE')
+
+                <button type="submit" data-confirm="Move this note to the recycle bin?" class="icon-btn hover:!text-rose-500" title="Delete note">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </form>
+        </x-slot:actions>
+    </x-page-header>
+
+    <article class="glass min-h-[max(22rem,calc(100vh-22rem))] whitespace-pre-line p-6 leading-relaxed animate-fade-up sm:p-8">
+        {{ $note->body }}
+    </article>
 @endsection

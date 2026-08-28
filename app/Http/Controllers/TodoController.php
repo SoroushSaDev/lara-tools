@@ -4,122 +4,128 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TodoRequest;
 use App\Models\Todo;
-use Exception;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use Throwable;
 
+/**
+ * Full CRUD for checklists, including toggling individual items.
+ */
 class TodoController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the todo lists.
      */
-    public function index()
+    public function index(): View
     {
-        $todos = Todo::all();
-        return view('todos.index', compact('todos'));
+        return view('todos.index', [
+            'todos' => Todo::latest()->get(),
+        ]);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new todo list.
      */
-    public function create()
+    public function create(): View
     {
         return view('todos.create');
     }
 
     /**
-     * @param TodoRequest $request
-     * @return RedirectResponse|void
-     * @throws Throwable
+     * Store a newly created todo list.
      */
-    public function store(TodoRequest $request)
+    public function store(TodoRequest $request): RedirectResponse
     {
-        DB::beginTransaction();
-        try {
-            $items = [];
-            foreach ($request->items as $item) {
-                if (!is_null($item))
-                    $items[] = [
-                        'text' => $item,
-                        'completed' => false,
-                    ];
-            }
-            Todo::create([
-                'title' => $request['title'],
-                'items' => json_encode($items),
-                'description' => $request['description'],
-            ]);
-            DB::commit();
-            return redirect()->route('todos.index');
-        } catch (\Exception $exception) {
-            DB::rollBack();
-            dd($exception);
-        }
+        $todo = Todo::create([
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+            'items' => collect($request->validated('items') ?? [])
+                ->filter(fn ($text) => filled($text))
+                ->map(fn ($text) => ['text' => trim($text), 'completed' => false])
+                ->values()
+                ->all(),
+        ]);
+
+        return redirect()
+            ->route('todos.show', $todo)
+            ->with('success', 'Todo list created.');
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified todo list.
      */
-    public function show(Todo $todo)
+    public function show(Todo $todo): View
     {
         return view('todos.show', compact('todo'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing the specified todo list.
      */
-    public function edit(Todo $todo)
+    public function edit(Todo $todo): View
     {
         return view('todos.edit', compact('todo'));
     }
 
     /**
-     * @param TodoRequest $request
-     * @param Todo $todo
-     * @return RedirectResponse|void
-     * @throws Throwable
+     * Update the specified todo list.
+     *
+     * Items keep their completion state when their text is unchanged so
+     * editing a checklist never wipes the user's progress (a bug in the
+     * previous implementation).
      */
-    public function update(TodoRequest $request, Todo $todo)
+    public function update(TodoRequest $request, Todo $todo): RedirectResponse
     {
-        DB::beginTransaction();
-        try {
-            $items = [];
-            foreach ($request->items as $item) {
-                if (!is_null($item))
-                    $items[] = [
-                        'text' => $item,
-                        'completed' => false,
-                    ];
-            }
-            $todo->update([
-                'title' => $request['title'],
-                'items' => json_encode($items),
-                'description' => $request['description'],
-            ]);
-            DB::commit();
-            return redirect()->route('todos.show', $todo);
-        } catch (\Exception $exception) {
-            DB::rollBack();
-            dd($exception);
-        }
+        $previous = collect($todo->items())->keyBy('text');
+
+        $todo->update([
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+            'items' => collect($request->validated('items') ?? [])
+                ->filter(fn ($text) => filled($text))
+                ->map(fn ($text) => [
+                    'text' => trim($text),
+                    'completed' => $previous[trim($text)]['completed'] ?? false,
+                ])
+                ->values()
+                ->all(),
+        ]);
+
+        return redirect()
+            ->route('todos.show', $todo)
+            ->with('success', 'Todo list updated.');
     }
 
     /**
-     * @param Todo $todo
-     * @return RedirectResponse|void
-     * @throws Throwable
+     * Soft-delete the specified todo list.
      */
-    public function destroy(Todo $todo)
+    public function destroy(Todo $todo): RedirectResponse
     {
-        DB::beginTransaction();
-        try {
-            $todo->delete();
-            DB::commit();
-            return redirect()->route('todos.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            dd($e->getMessage());
+        $todo->delete();
+
+        return redirect()
+            ->route('todos.index')
+            ->with('success', 'Todo list moved to the recycle bin.');
+    }
+
+    /**
+     * Toggle the completed state of a single checklist item.
+     */
+    public function toggleItem(Todo $todo, int $index): JsonResponse
+    {
+        $items = $todo->items();
+
+        if (! isset($items[$index])) {
+            return response()->json(['message' => 'Item not found.'], 404);
         }
+
+        $items[$index]['completed'] = ! $items[$index]['completed'];
+
+        $todo->update(['items' => $items]);
+
+        return response()->json([
+            'completed' => $items[$index]['completed'],
+            'progress' => $todo->progress(),
+        ]);
     }
 }

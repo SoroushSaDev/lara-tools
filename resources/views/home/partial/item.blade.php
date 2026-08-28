@@ -1,7 +1,15 @@
+{{-- Launcher tile for a single tool --}}
+@php($delay = $delay ?? 0)
+
 <a href="{{ $route }}"
-   class="flex flex-col justify-center items-center space-y-5 lg:space-y-10 font-semibold text-lg lg:text-2xl py-9 px-5 lg:p-20 backdrop-blur-3xl bg-white/30 dark:bg-black/30 rounded-lg hover:shadow-2xl">
-    <i class="bi bi-{{ $icon }} text-5xl lg:text-6xl"></i>
-    <span>
+   class="glass glass-hover group flex flex-col items-center gap-4 p-6 animate-fade-up sm:gap-6 sm:p-8"
+   style="animation-delay: {{ $delay }}ms">
+    <span class="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br text-3xl text-white shadow-lg transition-all duration-300 group-hover:-rotate-6 group-hover:scale-110 sm:size-20 sm:text-4xl {{ $gradient }} {{ $shadow }}">
+        <i class="bi {{ $icon }} transition-colors group-hover:hidden"></i>
+        <i class="bi {{ $iconFill }} hidden transition-colors group-hover:block"></i>
+    </span>
+
+    <span class="heading text-center text-base sm:text-lg">
         {{ $label }}
     </span>
 </a>

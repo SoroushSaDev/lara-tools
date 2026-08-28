@@ -1,46 +1,90 @@
 <?php
 
+use App\Http\Controllers\AboutController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\ClockController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MusicController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\RecycleBinController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TodoController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| LaraTools is a single-user desktop application, so there is no
+| authentication layer. Routes are grouped by feature and every state
+| changing action uses the appropriate HTTP verb.
+|
+*/
+
+// Dashboard.
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::get('/bin', [UserController::class, 'bin'])->name('bin');
-Route::get('/settings', [UserController::class, 'settings'])->name('settings');
-
+// Notes (full resource).
 Route::resource('notes', NoteController::class);
+
+// Todo lists + per-item completion toggles.
 Route::resource('todos', TodoController::class);
+Route::patch('todos/{todo}/items/{index}', [TodoController::class, 'toggleItem'])
+    ->name('todos.items.toggle');
 
-Route::prefix('/music')->name('music.')->group(function () {
-    Route::get('/', [MusicController::class, 'index'])->name('index');
-    Route::get('/pick', [MusicController::class, 'pickFileOrFolder'])->name('pick');
-    Route::delete('/{music:id}/delete', [MusicController::class, 'delete'])->name('delete');
-    Route::get('/stream/{file}', [MusicController::class, 'stream'])->where('file', '.*')->name('stream');
-});
-
-Route::prefix('/calendar')->name('calendar.')->group(function() {
+// Calendar events.
+Route::prefix('calendar')->name('calendar.')->group(function () {
     Route::get('/', [CalendarController::class, 'index'])->name('index');
     Route::get('/create', [CalendarController::class, 'create'])->name('create');
     Route::post('/', [CalendarController::class, 'store'])->name('store');
+    Route::get('/{event}/edit', [CalendarController::class, 'edit'])->name('edit');
+    Route::put('/{event}', [CalendarController::class, 'update'])->name('update');
+    Route::delete('/{event}', [CalendarController::class, 'destroy'])->name('destroy');
 });
 
-Route::get('/calculator', function () {
-    return view('calculator.index');
-})->name('calculator');
+// Music library.
+Route::prefix('music')->name('music.')->group(function () {
+    Route::get('/', [MusicController::class, 'index'])->name('index');
+    Route::get('/pick', [MusicController::class, 'pick'])->name('pick');
+    Route::delete('/{music}/delete', [MusicController::class, 'destroy'])->name('destroy');
+    Route::get('/stream/{music}', [MusicController::class, 'stream'])->name('stream');
+    Route::get('/cover/{music}', [MusicController::class, 'cover'])->name('cover');
+});
 
-Route::prefix('/weather')->name('weather.')->group(function () {
+// Standalone calculator page.
+Route::view('/calculator', 'calculator.index')->name('calculator');
+
+// Clock tool (real-time clock, stopwatch, timers, world clocks).
+Route::get('/clock', [ClockController::class, 'index'])->name('clock');
+Route::post('/clock/zones', [ClockController::class, 'saveZones'])->name('clock.zones');
+
+// Unit converter.
+Route::view('/converter', 'converter.index')->name('converter');
+
+// Weather dashboard and saved cities.
+Route::prefix('weather')->name('weather.')->group(function () {
     Route::get('/', [WeatherController::class, 'index'])->name('index');
-    Route::any('/cities', [WeatherController::class, 'cities'])->name('cities');
-    Route::get('/coordinates/{lat}/{lon}', [WeatherController::class, 'byCoordinates']);
-    Route::get('/city/{city:id}', [WeatherController::class, 'byCity']);
-    Route::get('/{city:id}/data', [WeatherController::class, 'data'])->name('data');
-    Route::get('/{city:id}/set', [WeatherController::class, 'homeTown'])->name('set');
-    Route::get('/{city:id}/update', [WeatherController::class, 'update'])->name('update');
-    Route::get('/{city:id}/delete', [WeatherController::class, 'delete'])->name('delete');
+    Route::get('/locate', [WeatherController::class, 'locate'])->name('locate');
+    Route::get('/cities', [WeatherController::class, 'cities'])->name('cities.index');
+    Route::post('/cities', [WeatherController::class, 'storeCity'])->name('cities.store');
+    Route::post('/{city}/set', [WeatherController::class, 'setHomeTown'])->name('set');
+    Route::post('/{city}/refresh', [WeatherController::class, 'refresh'])->name('refresh');
+    Route::delete('/{city}', [WeatherController::class, 'destroy'])->name('destroy');
+});
+
+// Application preferences.
+Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+// About page with version history.
+Route::get('/about', [AboutController::class, 'index'])->name('about');
+
+// Recycle bin for soft-deleted records.
+Route::prefix('bin')->name('bin.')->group(function () {
+    Route::get('/', [RecycleBinController::class, 'index'])->name('index');
+    Route::post('/{type}/{id}/restore', [RecycleBinController::class, 'restore'])->name('restore');
+    Route::delete('/{type}/{id}', [RecycleBinController::class, 'destroy'])->name('destroy');
+    Route::post('/empty', [RecycleBinController::class, 'empty'])->name('empty');
 });

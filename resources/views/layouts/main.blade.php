@@ -1,52 +1,62 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme-pref="{{ $appearance }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
 
-    <title>
-        @yield('title')
-    </title>
+    <title>@yield('title', 'LaraTools') · LaraTools</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="{{ asset('assets/fonts/fonts.bunny.net.css') }}" rel="stylesheet"/>
-    <link rel="preload" href="{{ asset('fonts/Outfit-VariableFont_wght.ttf') }}" as="font" type="font/ttf" crossorigin>
-    <link rel="preload" href="{{ asset('fonts/Quicksand-VariableFont_wght.ttf') }}" as="font" type="font/ttf"
-          crossorigin>
+    <!-- Apply the saved theme before first paint to avoid a flash. -->
+    <script>
+        (function () {
+            var pref = document.documentElement.dataset.themePref
+                || localStorage.getItem('lara-tools.theme')
+                || 'dark';
+            var dark = pref === 'dark'
+                || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        })();
+    </script>
 
-    <!-- Styles / Scripts -->
-    <link href="{{ asset('assets/flowbite/flowbite.min.css') }}" rel="stylesheet"/>
-    @include('layouts.partial.styles')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('style')
 </head>
-<body
-    class="bg-conic/decreasing from-violet-900 via-lime-900 to-violet-900 text-white flex p-3 lg:p-5 items-center lg:justify-center min-h-screen overflow-y-auto select-none flex-col scroll-smooth pt-20 pb-40">
-<div class="fixed flex flex-col items-center !space-y-6 top-0 w-full p-3 z-30 backdrop-blur-3xl">
-    <div class="grid grid-cols-5 gap-3 lg:gap-6 w-full sm:mb-0">
-        <div class="flex justify-start items-center space-x-3 lg:space-x-6">
-            @yield('header-s')
-        </div>
-        <h1 class="col-span-3 text-3xl lg:text-5xl font-bold text-center">
-            @yield('title')
-        </h1>
-        <div class="flex justify-end items-center space-x-3 lg:space-x-6">
-            @yield('header-e')
-        </div>
+<body class="app-shell min-h-screen font-sans font-semibold text-slate-800 antialiased select-none dark:text-slate-100 {{ request()->routeIs('music.*') ? 'on-music-page' : '' }}"
+      data-music-shuffle-default="{{ $musicShuffleDefault ? '1' : '0' }}">
+    <!-- Decorative floating background orbs -->
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div class="absolute -top-32 right-[8%] size-[26rem] rounded-full bg-violet-500/20 blur-3xl animate-float-a"></div>
+        <div class="absolute bottom-[-8rem] left-[-6rem] size-[24rem] rounded-full bg-fuchsia-500/15 blur-3xl animate-float-b"></div>
     </div>
-    <div class="max-sm:w-full sm:w-[600px]">
-        @yield('top-bar')
+
+    <div class="flex min-h-screen">
+        <!-- Desktop sidebar -->
+        @include('layouts.partial.sidebar')
+
+        <main class="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-72">
+            <!-- Mobile top bar -->
+            @include('layouts.partial.top-bar')
+
+            <!-- Page content -->
+            <div class="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-36 sm:px-8 lg:pb-12">
+                @yield('content')
+            </div>
+
+            @include('layouts.partial.footer')
+        </main>
     </div>
-</div>
-<div
-    class="flex items-center justify-center w-full transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0 max-sm:pt-10 sm:pt-50">
-    @yield('content')
-</div>
-<div class="fixed bottom-0 left-0 w-full flex flex-col">
-    @yield('bottom-bar')
-    @include('layouts.partial.footer')
-</div>
-@include('layouts.partial.scripts')
-@stack('script')
+
+    <!-- Mobile bottom navigation -->
+    @include('layouts.partial.bottom-nav')
+
+    <!-- Persistent music player (mini everywhere, full deck on Music) -->
+    @include('layouts.partial.player')
+
+    <!-- Global overlays -->
+    @include('components.toast-stack')
+    @include('components.confirm-dialog')
+
+    @stack('script')
 </body>
 </html>
