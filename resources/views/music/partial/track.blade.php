@@ -34,6 +34,32 @@
                 <span class="truncate">{{ $track->album }}</span>
             @endif
         </div>
+
+        {{-- Tag editor: server-rendered chips, JS keeps them in sync.
+             Lives inside a <form> so the row's play/pause click ignores it. --}}
+        @if ($musicShowTags)
+            <form method="POST" action="{{ route('music.tags.update', $track) }}" data-tag-form
+                  class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                @csrf
+
+                <span class="flex flex-wrap items-center gap-1.5" data-tag-chips>
+                    @foreach ($track->tagList() as $tag)
+                        <span class="chip bg-violet-500/15 text-violet-700 dark:bg-fuchsia-400/10 dark:text-fuchsia-200" data-tag="{{ $tag }}">
+                            {{ $tag }}
+
+                            <button type="button" data-tag-remove="{{ $tag }}" title="Remove tag"
+                                    class="-me-1 opacity-60 transition hover:opacity-100">
+                                <i class="bi bi-x-lg text-[10px]"></i>
+                            </button>
+                        </span>
+                    @endforeach
+                </span>
+
+                <input type="text" data-tag-add placeholder="+ tag" maxlength="40" autocomplete="off"
+                       aria-label="Add a tag"
+                       class="w-20 rounded-full border border-violet-500/25 bg-violet-500/5 px-2.5 py-1 text-xs font-bold text-violet-700 outline-none transition placeholder:text-violet-500/50 focus:border-violet-500/50 dark:bg-fuchsia-400/5 dark:text-fuchsia-100"/>
+            </form>
+        @endif
     </div>
 
     @unless ($track->audioExists())

@@ -13,6 +13,24 @@
 return [
     'entries' => [
         [
+            'version' => '1.2.0',
+            'date' => '2026-10-19',
+            'notes' => [
+                'Notes now use a full rich-text editor: headings, lists, quotes, links and alignment',
+                'New Dashboard settings tab: switch statistics and shortcuts on or off, one by one',
+                'Todo lists carry a due date and a priority, and can be sorted by either',
+                'Calendar spreads the month grid and the event list side by side on wide screens',
+                'Events can pin a location on an interactive map',
+                'Music library rows gained a tag editor',
+                'Seek and volume sliders show a live time/percentage tooltip',
+                'Calculator modes: scientific, BMI and date difference',
+                'Weather city page surfaces every field the forecast API returns',
+                'Every module fills the window instead of hugging a narrow column',
+                'World clocks, alarms, converter and settings rearranged into two columns',
+                'About page rewritten as a two-column reference with troubleshooting notes',
+            ],
+        ],
+        [
             'version' => '1.1.0',
             'date' => '2026-08-25',
             'notes' => [

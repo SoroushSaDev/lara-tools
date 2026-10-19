@@ -31,25 +31,44 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach ($this->viewSettings() as $name => $value) {
+            View::share($name, $value);
+        }
+    }
+
+    /**
+     * Preferences the views read directly, keyed by their Blade variable.
+     *
+     * Anything that changes a query is read in its own controller instead.
+     *
+     * @return array<string, mixed>
+     */
+    protected function viewSettings(): array
+    {
         // Preferences live in the database; tolerate a not-yet-migrated
         // database so artisan bootstrap (e.g. package discovery) still works.
         try {
             $settings = $this->app->make(SettingRepository::class);
-
-            View::share('weatherUnits', $settings->get('weather_units')
-                ?? config('services.openweather.units', 'metric'));
-            View::share('appearance', $settings->get('appearance') ?? 'dark');
-            View::share('clockTimeFormat', $settings->get('clock_time_format') ?? '24h');
-            View::share('clockShowSeconds', ($settings->get('clock_show_seconds') ?? '1') === '1');
-            View::share('converterPrecision', (int) ($settings->get('converter_precision') ?? 2));
-            View::share('musicShuffleDefault', ($settings->get('music_shuffle_default') ?? '0') === '1');
         } catch (\Throwable) {
-            View::share('weatherUnits', config('services.openweather.units', 'metric'));
-            View::share('appearance', 'dark');
-            View::share('clockTimeFormat', '24h');
-            View::share('clockShowSeconds', true);
-            View::share('converterPrecision', 2);
-            View::share('musicShuffleDefault', false);
+            $settings = null;
         }
+
+        $text = fn (string $key, string $default): string => (string) ($settings?->get($key) ?? $default);
+        $on = fn (string $key, bool $default = true): bool => ($settings?->get($key) ?? ($default ? '1' : '0')) === '1';
+
+        return [
+            'weatherUnits' => $text('weather_units', (string) config('services.openweather.units', 'metric')),
+            'appearance' => $text('appearance', 'dark'),
+            'clockTimeFormat' => $text('clock_time_format', '24h'),
+            'clockShowSeconds' => $on('clock_show_seconds'),
+            'clockShowAnalog' => $on('clock_show_analog'),
+            'converterPrecision' => (int) ($settings?->get('converter_precision') ?? 2),
+            'musicShuffleDefault' => $on('music_shuffle_default', false),
+            'musicShowTags' => $on('music_show_tags'),
+            'notesToolbarCompact' => $on('notes_toolbar_compact', false),
+            'weatherShowTechnical' => $on('weather_show_technical'),
+            'calendarShowLocations' => $on('calendar_show_locations'),
+            'confirmDeletes' => $on('confirm_deletes'),
+        ];
     }
 }

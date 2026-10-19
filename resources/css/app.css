@@ -2,6 +2,7 @@
 
 /* Icon font ships inside this stylesheet so it never depends on JS execution. */
 @import 'bootstrap-icons/font/bootstrap-icons.css';
+@import 'leaflet/dist/leaflet.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -362,22 +363,133 @@
         display: none;
     }
 
-    /* Range inputs (audio player, sliders) */
-    .range {
-        @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-900/15 dark:bg-white/15;
+    /* ---- Slider ---------------------------------------------------------
+       Reusable filled-track slider (player seek, volume, any numeric pick).
+       JS owns --p (0%-100%); the native range input stays in the tree,
+       visually hidden but focusable, so keyboard and forms keep working. */
+    .slider {
+        @apply relative flex h-6 w-full cursor-pointer touch-none select-none items-center;
     }
 
-    .range::-webkit-slider-thumb {
-        @apply size-4 appearance-none rounded-full bg-white shadow-md shadow-black/25 transition-transform hover:scale-115;
+    .slider-rail {
+        @apply h-2 w-full overflow-hidden rounded-full bg-slate-900/15 dark:bg-white/15;
     }
 
-    .range::-moz-range-thumb {
-        height: 1rem;
-        width: 1rem;
-        border: none;
-        border-radius: 9999px;
-        background: white;
-        box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+    .slider-fill {
+        @apply h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500;
+        width: var(--p, 0%);
+    }
+
+    .slider-thumb {
+        @apply pointer-events-none absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full
+            bg-white shadow-md shadow-black/25 transition-transform duration-150;
+        left: var(--p, 0%);
+    }
+
+    .slider:hover .slider-thumb,
+    .slider.is-active .slider-thumb {
+        @apply scale-125;
+    }
+
+    /* Keep the native control for a11y: invisible, but focus moves to it. */
+    .slider-input {
+        @apply absolute inset-0 h-full w-full cursor-pointer opacity-0;
+    }
+
+    .slider:has(.slider-input:focus-visible) .slider-thumb {
+        @apply ring-4 ring-violet-500/40;
+    }
+
+    .slider-tip {
+        @apply pointer-events-none absolute bottom-full z-10 -translate-x-1/2 rounded-lg bg-slate-900/90
+            px-2 py-1 text-xs font-bold tabular-nums whitespace-nowrap text-white opacity-0
+            shadow-lg transition-opacity duration-150
+            dark:bg-white/15 dark:text-white;
+        left: var(--p, 0%);
+    }
+
+    .slider:hover .slider-tip,
+    .slider.is-active .slider-tip,
+    .slider:has(.slider-input:focus-visible) .slider-tip {
+        @apply opacity-100;
+    }
+
+    /* ---- Rich-text editor -----------------------------------------------
+       Toolbar + writable surface for the note body editor. */
+    .rt-toolbar {
+        @apply flex flex-wrap items-center gap-1 rounded-t-2xl border border-b-0
+            border-slate-900/10 bg-white/70 p-2 backdrop-blur
+            dark:border-white/10 dark:bg-white/[0.07];
+    }
+
+    .rt-btn {
+        @apply inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg
+            text-sm font-bold text-slate-600 transition-all duration-150 select-none
+            hover:bg-violet-500/10 hover:text-violet-700 active:scale-90
+            dark:text-slate-300 dark:hover:bg-fuchsia-500/15 dark:hover:text-fuchsia-300;
+    }
+
+    .rt-btn.is-active {
+        @apply bg-violet-500/15 text-violet-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300;
+    }
+
+    .rt-sep {
+        @apply mx-1 h-6 w-px shrink-0 bg-slate-900/10 dark:bg-white/10;
+    }
+
+    .rt-body {
+        @apply text-[15px] leading-relaxed text-slate-800 outline-none dark:text-slate-100;
+    }
+
+    .rt-body[data-empty='true']::before {
+        content: attr(data-placeholder);
+        @apply pointer-events-none text-slate-400 dark:text-slate-500;
+    }
+
+    .rt-rendered {
+        overflow-wrap: anywhere;
+    }
+
+    .rt-body h1,
+    .rt-body h2,
+    .rt-body h3 {
+        @apply font-display font-semibold tracking-tight text-slate-900 dark:text-white;
+    }
+
+    .rt-body h1 { @apply mt-6 mb-2 text-2xl; }
+    .rt-body h2 { @apply mt-5 mb-2 text-xl; }
+    .rt-body h3 { @apply mt-4 mb-1.5 text-lg; }
+    .rt-body p { @apply my-2; }
+    .rt-body ul { @apply my-2 list-disc ps-6; }
+    .rt-body ol { @apply my-2 list-decimal ps-6; }
+    .rt-body li { @apply my-0.5; }
+    .rt-body blockquote { @apply my-3 border-s-4 border-violet-500/50 ps-3 text-slate-600 italic dark:text-slate-300; }
+    .rt-body code { @apply rounded-md bg-slate-900/8 px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/10; }
+    .rt-body pre { @apply my-3 overflow-x-auto rounded-xl bg-slate-900/90 p-3 font-mono text-sm text-white dark:bg-black/40; }
+    .rt-body a { @apply text-violet-600 underline decoration-violet-500/40 underline-offset-2 hover:text-fuchsia-600 dark:text-fuchsia-300; }
+    .rt-body hr { @apply my-4 border-slate-900/10 dark:border-white/10; }
+
+    /* ---- Leaflet map ------------------------------------------------------ */
+    .map-canvas {
+        @apply h-72 w-full overflow-hidden rounded-xl border border-slate-900/10 dark:border-white/10;
+    }
+
+    .leaflet-container {
+        @apply bg-slate-200 font-sans dark:bg-slate-800;
+    }
+
+    /* Recolour raster tiles for the dark appearance without a second provider. */
+    .dark .leaflet-tile {
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+    }
+
+    .dark .leaflet-popup-content-wrapper,
+    .dark .leaflet-popup-tip {
+        @apply bg-slate-800 text-slate-100;
+    }
+
+    .dark .leaflet-bar a {
+        @apply border-white/10 bg-slate-800 text-slate-100 hover:bg-slate-700;
     }
 }
 

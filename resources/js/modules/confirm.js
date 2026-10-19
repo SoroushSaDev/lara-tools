@@ -64,6 +64,10 @@ document.addEventListener('click', (event) => {
 
     if (!trigger) return;
 
+    // "Ask before moving anything to the bin" turned off: let the click run
+    // straight through, so the form submits or the link opens as usual.
+    if (document.body.dataset.confirmDeletes === '0') return;
+
     event.preventDefault();
     event.stopPropagation();
     pendingAction = trigger;

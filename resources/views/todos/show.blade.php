@@ -32,6 +32,12 @@
             </p>
         @endif
 
+        @if ($todo->hasPriority() || $todo->due_at)
+            <div class="mb-4 animate-fade-up">
+                <x-todo-meta :todo="$todo"/>
+            </div>
+        @endif
+
         {{-- Overall progress --}}
         <div class="glass mb-5 p-4 animate-fade-up" style="animation-delay: 60ms">
             <div class="progress-track">

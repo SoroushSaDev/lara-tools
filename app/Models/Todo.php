@@ -12,10 +12,19 @@ class Todo extends Model
 {
     use SoftDeletes;
 
+    /**
+     * Priority levels, ordered from least to most urgent.
+     *
+     * @var list<string>
+     */
+    public const PRIORITIES = ['low', 'medium', 'high'];
+
     protected $fillable = [
         'title',
         'description',
         'items',
+        'due_at',
+        'priority',
     ];
 
     /**
@@ -27,6 +36,7 @@ class Todo extends Model
     {
         return [
             'items' => 'array',
+            'due_at' => 'date',
         ];
     }
 
@@ -44,6 +54,26 @@ class Todo extends Model
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Whether the list carries a real priority ('none' and unmigrated rows do not).
+     */
+    public function hasPriority(): bool
+    {
+        return in_array($this->priority, self::PRIORITIES, true);
+    }
+
+    /**
+     * Whether the deadline has passed with items still open.
+     */
+    public function isOverdue(): bool
+    {
+        $progress = $this->progress();
+
+        return $this->due_at !== null
+            && $this->due_at->toDateString() < today()->toDateString()
+            && $progress['completed'] < $progress['total'];
     }
 
     /**

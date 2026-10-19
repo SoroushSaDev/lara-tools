@@ -17,6 +17,8 @@ class Event extends Model
         'description',
         'address',
         'starts_at',
+        'latitude',
+        'longitude',
     ];
 
     /**
@@ -28,6 +30,16 @@ class Event extends Model
     {
         return [
             'starts_at' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
+    }
+
+    /**
+     * Whether the event carries map coordinates from the location picker.
+     */
+    public function hasLocation(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 }

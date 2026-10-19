@@ -23,7 +23,9 @@
         </x-slot:actions>
     </x-page-header>
 
-    <article class="glass min-h-[max(22rem,calc(100vh-22rem))] whitespace-pre-line p-6 leading-relaxed animate-fade-up sm:p-8">
-        {{ $note->body }}
+    {{-- Re-sanitised on the way out on purpose: rows saved before the rich-text
+         editor (and plain-text notes) are upgraded to paragraphs here. --}}
+    <article class="glass rt-body rt-rendered min-h-[max(22rem,calc(100vh-22rem))] p-6 leading-relaxed animate-fade-up sm:p-8">
+        {!! App\Support\RichText::render($note->body) !!}
     </article>
 @endsection

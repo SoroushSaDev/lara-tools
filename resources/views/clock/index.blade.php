@@ -28,81 +28,90 @@
 
         {{-- Local clock plus the pinned world clocks --}}
         <section data-tab-panel="world" class="animate-fade-up">
-            <div class="mx-auto flex max-w-lg flex-col items-center gap-8 py-6">
-                <div class="clock-face relative size-60 rounded-full border border-white/70 shadow-2xl shadow-violet-900/20 sm:size-72 dark:border-white/10">
-                    {{-- Hour ticks --}}
-                    @foreach (range(0, 11) as $tick)
-                        <span class="clock-tick text-slate-500 dark:text-slate-300" style="transform: rotate({{ $tick * 30 }}deg)"></span>
-                    @endforeach
+            {{-- Two columns on lg: local clock | pinned cities + pin form.
+                 The grid lives on an inner wrapper so the panel toggle keeps
+                 using the bare `hidden` attribute on the section itself. --}}
+            <div class="lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+                <div class="flex flex-col items-center gap-8 py-6">
+                    {{-- Hidden rather than removed: clock.js keeps writing to the hands. --}}
+                    <div class="clock-face relative size-60 rounded-full border border-white/70 shadow-2xl shadow-violet-900/20 sm:size-72 dark:border-white/10"
+                         @if (! $clockShowAnalog) hidden @endif>
+                        {{-- Hour ticks --}}
+                        @foreach (range(0, 11) as $tick)
+                            <span class="clock-tick text-slate-500 dark:text-slate-300" style="transform: rotate({{ $tick * 30 }}deg)"></span>
+                        @endforeach
 
-                    {{-- Hands are centred with a negative margin because the
-                         tick loop writes transform (rotate) directly. --}}
-                    <span class="clock-hand !w-1 h-[70px] -ms-0.5 bg-slate-800 dark:bg-white" id="hand-hour"></span>
-                    <span class="clock-hand !w-1 h-[95px] -ms-0.5 bg-slate-700 dark:bg-slate-200" id="hand-minute"></span>
-                    <span class="clock-hand w-0.5 h-[105px] -ms-px bg-gradient-to-b from-violet-500 to-fuchsia-600" id="hand-second"></span>
+                        {{-- Hands are centred with a negative margin because the
+                             tick loop writes transform (rotate) directly. --}}
+                        <span class="clock-hand !w-1 h-[70px] -ms-0.5 bg-slate-800 dark:bg-white" id="hand-hour"></span>
+                        <span class="clock-hand !w-1 h-[95px] -ms-0.5 bg-slate-700 dark:bg-slate-200" id="hand-minute"></span>
+                        <span class="clock-hand w-0.5 h-[105px] -ms-px bg-gradient-to-b from-violet-500 to-fuchsia-600" id="hand-second"></span>
 
-                    <span class="absolute left-1/2 top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-md"></span>
+                        <span class="absolute left-1/2 top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-md"></span>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="font-display text-5xl font-semibold tabular-nums tracking-tight text-slate-900 sm:text-6xl dark:text-white" id="digital-time">{{ now()->format('H:i') }}@if ($clockShowSeconds)<span id="digital-seconds" class="text-violet-500 dark:text-fuchsia-400">{{ now()->format(':s') }}</span>@endif</p>
+                        <p class="mt-2 text-sm font-bold capitalize text-slate-500 dark:text-slate-400" id="digital-date">{{ now()->translatedFormat('l, F j Y') }}</p>
+                    </div>
                 </div>
 
-                <div class="text-center">
-                    <p class="font-display text-5xl font-semibold tabular-nums tracking-tight text-slate-900 sm:text-6xl dark:text-white" id="digital-time">{{ now()->format('H:i') }}@if ($clockShowSeconds)<span id="digital-seconds" class="text-violet-500 dark:text-fuchsia-400">{{ now()->format(':s') }}</span>@endif</p>
-                    <p class="mt-2 text-sm font-bold capitalize text-slate-500 dark:text-slate-400" id="digital-date">{{ now()->translatedFormat('l, F j Y') }}</p>
-                </div>
-            </div>
+                <div class="min-w-0">
+                    <h2 class="heading mb-3 flex items-center gap-2 text-lg">
+                        <i class="bi bi-pin-angle-fill text-violet-500 dark:text-fuchsia-400"></i>Pinned cities
+                    </h2>
 
-            <h2 class="heading mb-3 flex items-center gap-2 text-lg">
-                <i class="bi bi-pin-angle-fill text-violet-500 dark:text-fuchsia-400"></i>Pinned cities
-            </h2>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2">
+                        @forelse ($zones as $zone)
+                            <div class="glass glass-hover flex items-center gap-4 p-4 animate-fade-up">
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate font-bold sm:text-lg">{{ config('clock.zones')[$zone] }}</p>
+                                    <p class="truncate text-[11px] font-bold text-slate-400 dark:text-slate-500">{{ $zone }}</p>
+                                </div>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                @forelse ($zones as $zone)
-                    <div class="glass glass-hover flex items-center gap-4 p-4 animate-fade-up">
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-bold sm:text-lg">{{ config('clock.zones')[$zone] }}</p>
-                            <p class="truncate text-[11px] font-bold text-slate-400 dark:text-slate-500">{{ $zone }}</p>
-                        </div>
+                                <span class="heading shrink-0 text-2xl tabular-nums" data-zone-time data-tz="{{ $zone }}">--:--</span>
 
-                        <span class="heading shrink-0 text-2xl tabular-nums" data-zone-time data-tz="{{ $zone }}">--:--</span>
+                                <form method="POST" action="{{ route('clock.zones') }}" class="shrink-0">
+                                    @csrf
+                                    <input type="hidden" name="remove" value="{{ $zone }}"/>
 
-                        <form method="POST" action="{{ route('clock.zones') }}" class="shrink-0">
+                                    <button type="submit" class="icon-btn icon-btn-danger !size-9" title="Unpin {{ config('clock.zones')[$zone] }}">
+                                        <i class="bi bi-pin-angle-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        @empty
+                            <div class="col-span-full">
+                                <x-empty-state icon="bi-globe" title="No world clocks pinned">
+                                    <x-slot:description>Pin cities below to compare times at a glance.</x-slot:description>
+                                </x-empty-state>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    @if (! empty($available))
+                        <form method="POST" action="{{ route('clock.zones') }}"
+                              class="glass mt-4 flex flex-wrap items-center justify-center gap-3 p-4 animate-fade-up">
                             @csrf
-                            <input type="hidden" name="remove" value="{{ $zone }}"/>
 
-                            <button type="submit" class="icon-btn icon-btn-danger !size-9" title="Unpin {{ config('clock.zones')[$zone] }}">
-                                <i class="bi bi-pin-angle-fill"></i>
+                            <div class="dropdown relative min-w-52 flex-1">
+                                <select name="add" data-dropdown required
+                                        class="sr-only">
+                                    <option value="" disabled selected>Choose a city…</option>
+
+                                    @foreach ($available as $timezone => $city)
+                                        <option value="{{ $timezone }}">{{ $city }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn-primary">
+                                <i class="bi bi-plus-lg"></i>Pin clock
                             </button>
                         </form>
-                    </div>
-                @empty
-                    <div class="col-span-full">
-                        <x-empty-state icon="bi-globe" title="No world clocks pinned">
-                            <x-slot:description>Pin cities below to compare times at a glance.</x-slot:description>
-                        </x-empty-state>
-                    </div>
-                @endforelse
+                    @endif
+                </div>
             </div>
-
-            @if (! empty($available))
-                <form method="POST" action="{{ route('clock.zones') }}"
-                      class="glass mt-4 flex flex-wrap items-center justify-center gap-3 p-4 animate-fade-up">
-                    @csrf
-
-                    <div class="dropdown relative min-w-52 flex-1">
-                        <select name="add" data-dropdown required
-                                class="sr-only">
-                            <option value="" disabled selected>Choose a city…</option>
-
-                            @foreach ($available as $timezone => $city)
-                                <option value="{{ $timezone }}">{{ $city }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn-primary">
-                        <i class="bi bi-plus-lg"></i>Pin clock
-                    </button>
-                </form>
-            @endif
         </section>
 
         {{-- Stopwatch --}}
@@ -165,53 +174,62 @@
 
         {{-- Alarms --}}
         <section data-tab-panel="alarms" hidden>
-            <div id="alarm-alert" class="glass mb-4 hidden items-center gap-3 border-rose-500/40 bg-rose-500/15 px-4 py-3" role="status">
-                <i class="bi bi-alarm-fill shrink-0 text-xl text-rose-500"></i>
+            {{-- Two columns on lg: alert + form | alarm list. The grid is on
+                 an inner wrapper; the panel keeps the bare `hidden` attribute
+                 on the section for tabs.js. --}}
+            <div class="lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+                <div class="min-w-0">
+                    <div id="alarm-alert" class="glass mb-4 hidden items-center gap-3 border-rose-500/40 bg-rose-500/15 px-4 py-3" role="status">
+                        <i class="bi bi-alarm-fill shrink-0 text-xl text-rose-500"></i>
 
-                <p id="alarm-alert-text" class="min-w-0 flex-1 text-sm font-bold"></p>
+                        <p id="alarm-alert-text" class="min-w-0 flex-1 text-sm font-bold"></p>
 
-                <button type="button" id="alarm-dismiss" class="icon-btn icon-btn-danger !size-9 shrink-0" title="Stop alarm">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                        <button type="button" id="alarm-dismiss" class="icon-btn icon-btn-danger !size-9 shrink-0" title="Stop alarm">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <form id="alarm-form" class="glass mb-4 flex flex-wrap items-end gap-3 p-4 animate-fade-up">
+                        <label>
+                            <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Time</span>
+                            <input type="time" id="alarm-time" required
+                                   class="field-input !w-auto tabular-nums"/>
+                        </label>
+
+                        <label class="min-w-40 flex-1">
+                            <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Label</span>
+                            <input type="text" id="alarm-label" maxlength="40" placeholder="Wake up"
+                                   class="field-input w-full"/>
+                        </label>
+
+                        <label class="flex cursor-pointer items-center gap-2">
+                            <span class="relative inline-flex">
+                                <input type="checkbox" id="alarm-repeat" class="peer sr-only" checked/>
+                                <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
+                                <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
+                            </span>
+
+                            <span class="text-sm font-bold">Repeat daily</span>
+                        </label>
+
+                        <button type="submit" class="btn-primary">
+                            <i class="bi bi-plus-lg"></i>Add alarm
+                        </button>
+                    </form>
+
+                    <p class="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        Alarms ring while LaraTools is open.
+                    </p>
+                </div>
+
+                <div class="min-w-0 lg:mt-0">
+                    <ul id="alarm-list" class="flex flex-col gap-3"></ul>
+
+                    <p id="alarm-empty" class="py-6 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                        No alarms set yet.
+                    </p>
+                </div>
             </div>
-
-            <form id="alarm-form" class="glass mb-4 flex flex-wrap items-end gap-3 p-4 animate-fade-up">
-                <label>
-                    <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Time</span>
-                    <input type="time" id="alarm-time" required
-                           class="field-input !w-auto tabular-nums"/>
-                </label>
-
-                <label class="min-w-40 flex-1">
-                    <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Label</span>
-                    <input type="text" id="alarm-label" maxlength="40" placeholder="Wake up"
-                           class="field-input w-full"/>
-                </label>
-
-                <label class="flex cursor-pointer items-center gap-2">
-                    <span class="relative inline-flex">
-                        <input type="checkbox" id="alarm-repeat" class="peer sr-only" checked/>
-                        <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
-                        <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
-                    </span>
-
-                    <span class="text-sm font-bold">Repeat daily</span>
-                </label>
-
-                <button type="submit" class="btn-primary">
-                    <i class="bi bi-plus-lg"></i>Add alarm
-                </button>
-            </form>
-
-            <ul id="alarm-list" class="flex flex-col gap-3"></ul>
-
-            <p id="alarm-empty" class="py-6 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
-                No alarms set yet.
-            </p>
-
-            <p class="mt-4 text-xs font-bold text-slate-400 dark:text-slate-500">
-                Alarms ring while LaraTools is open.
-            </p>
         </section>
     </div>
 @endsection

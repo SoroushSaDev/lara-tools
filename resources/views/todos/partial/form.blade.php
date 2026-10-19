@@ -2,6 +2,13 @@
 @php([
     $todo = $todo ?? null,
     $items = $items ?? [],
+    $priority = old('priority', $todo?->priority ?? 'none'),
+    $priorityTones = [
+        'none' => 'peer-checked:border-slate-400/70 peer-checked:bg-slate-500/15 peer-checked:text-slate-800 dark:peer-checked:text-slate-100',
+        'low' => 'peer-checked:border-sky-500 peer-checked:bg-sky-500/15 peer-checked:text-sky-700 dark:peer-checked:text-sky-300',
+        'medium' => 'peer-checked:border-amber-500 peer-checked:bg-amber-500/15 peer-checked:text-amber-700 dark:peer-checked:text-amber-300',
+        'high' => 'peer-checked:border-rose-500 peer-checked:bg-rose-500/15 peer-checked:text-rose-700 dark:peer-checked:text-rose-300',
+    ],
 ])
 
 <form id="todo-form" method="POST" action="{{ $action }}"
@@ -25,6 +32,44 @@
     <textarea name="description"
               class="field-input min-h-20 resize-y leading-relaxed"
               placeholder="Description (optional)">{{ old('description', $todo?->description) }}</textarea>
+
+    {{-- Deadline & priority --}}
+    <div class="glass grid gap-4 p-4 sm:grid-cols-2">
+        <div>
+            <label for="due_at" class="mb-2 block text-sm font-bold">Due date</label>
+
+            <input type="date" id="due_at" name="due_at"
+                   value="{{ old('due_at', $todo?->due_at?->format('Y-m-d')) }}"
+                   class="field-input"/>
+
+            @error('due_at')
+                <span class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
+            @enderror
+        </div>
+
+        <div>
+            <span class="mb-2 block text-sm font-bold">Priority</span>
+
+            <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Priority">
+                @foreach (['none' => 'None', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High'] as $value => $option)
+                    <label class="cursor-pointer">
+                        <input type="radio" name="priority" value="{{ $value }}"
+                               class="peer sr-only" @checked($priority === $value)/>
+
+                        <span class="block rounded-full border-2 border-slate-900/10 bg-white/50 px-4 py-1.5 text-xs font-bold transition-all
+                            hover:bg-white {{ $priorityTones[$value] }}
+                            dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/10">
+                            {{ $option }}
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+
+            @error('priority')
+                <span class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
+            @enderror
+        </div>
+    </div>
 
     {{-- Checklist items --}}
     <div>

@@ -21,3 +21,6 @@ import './modules/todo-editor';
 import './modules/weather-location';
 import './modules/clock';
 import './modules/converter';
+import './modules/slider';
+import './modules/note-editor';
+import './modules/event-map';

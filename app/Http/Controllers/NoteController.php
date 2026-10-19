@@ -34,6 +34,7 @@ class NoteController extends Controller
 
         return view('notes.index', [
             'notes' => $notes,
+            'excerptLength' => (int) $this->settings->get('notes_excerpt_length', 160),
         ]);
     }
 

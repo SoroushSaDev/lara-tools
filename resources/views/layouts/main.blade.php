@@ -25,7 +25,8 @@
     @stack('style')
 </head>
 <body class="app-shell min-h-screen font-sans font-semibold text-slate-800 antialiased select-none dark:text-slate-100 {{ request()->routeIs('music.*') ? 'on-music-page' : '' }}"
-      data-music-shuffle-default="{{ $musicShuffleDefault ? '1' : '0' }}">
+      data-music-shuffle-default="{{ $musicShuffleDefault ? '1' : '0' }}"
+      data-confirm-deletes="{{ $confirmDeletes ? '1' : '0' }}">
     <!-- Decorative floating background orbs -->
     <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
         <div class="absolute -top-32 right-[8%] size-[26rem] rounded-full bg-violet-500/20 blur-3xl animate-float-a"></div>
@@ -40,8 +41,8 @@
             <!-- Mobile top bar -->
             @include('layouts.partial.top-bar')
 
-            <!-- Page content -->
-            <div class="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-36 sm:px-8 lg:pb-12">
+            <!-- Page content: modules own the full window, the padding is the gutter -->
+            <div class="w-full flex-1 px-4 pt-6 pb-36 sm:px-8 lg:px-10 lg:pb-12 2xl:px-16">
                 @yield('content')
             </div>
 

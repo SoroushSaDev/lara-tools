@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\RichText;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -18,7 +19,7 @@ class NoteRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Get the validation rules that apply to this request.
      *
      * @return array<string, list<string>>
      */
@@ -26,22 +27,27 @@ class NoteRequest extends FormRequest
     {
         return [
             'title' => ['nullable', 'string', 'max:255'],
-            'body' => ['required', 'string', 'max:20000'],
+            // Rich HTML costs several characters per visible one (its tags plus
+            // the entities the editor emits), so the old plain-text limit is tight.
+            'body' => ['required', 'string', 'max:60000'],
         ];
     }
 
     /**
-     * Get the validated data, trimming inputs on the way through.
+     * Get the validated data, trimming inputs on the way through and running
+     * the body past the whitelist sanitiser so the database never stores
+     * unsanitised HTML.
      *
      * @return array{title: string|null, body: string}
      */
     public function validated($key = null, $default = null): array
     {
         $title = trim((string) $this->input('title'));
+        $body = trim(RichText::sanitize((string) $this->input('body')));
 
         return [
             'title' => $title === '' ? null : $title,
-            'body' => trim((string) $this->input('body')),
+            'body' => $body,
         ];
     }
 }

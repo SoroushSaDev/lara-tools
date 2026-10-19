@@ -30,6 +30,8 @@ class EventRequest extends FormRequest
             'starts_at_time' => ['required', 'date_format:H:i'],
             'description' => ['nullable', 'string', 'max:5000'],
             'address' => ['nullable', 'string', 'max:1000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -45,6 +47,8 @@ class EventRequest extends FormRequest
             'starts_at' => $this->input('starts_at_date').' '.$this->input('starts_at_time'),
             'description' => $this->filled('description') ? trim((string) $this->input('description')) : null,
             'address' => $this->filled('address') ? trim((string) $this->input('address')) : null,
+            'latitude' => $this->filled('latitude') ? (float) $this->input('latitude') : null,
+            'longitude' => $this->filled('longitude') ? (float) $this->input('longitude') : null,
         ];
     }
 }

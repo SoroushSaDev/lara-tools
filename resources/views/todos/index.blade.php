@@ -5,7 +5,10 @@
 @section('content')
     <x-page-header>
         <x-slot:title>Todo Lists</x-slot:title>
-        <x-slot:subtitle>{{ $todos->count() }} {{ str('list')->plural($todos->count()) }}</x-slot:subtitle>
+        <x-slot:subtitle>
+            {{ $todos->count() }} {{ str('list')->plural($todos->count()) }}
+            @if ($hidden > 0) · {{ $hidden }} finished {{ str('list')->plural($hidden) }} hidden @endif
+        </x-slot:subtitle>
 
         <x-slot:actions>
             <a href="{{ route('settings', ['tab' => 'todos']) }}" class="icon-btn" title="Todo settings">
@@ -39,6 +42,8 @@
                         {{ $todo->description }}
                     </p>
                 @endif
+
+                <x-todo-meta :todo="$todo"/>
 
                 <div class="mt-auto space-y-1.5 pt-2">
                     <div class="progress-track">

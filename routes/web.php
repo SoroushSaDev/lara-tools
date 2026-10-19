@@ -49,6 +49,7 @@ Route::prefix('calendar')->name('calendar.')->group(function () {
 Route::prefix('music')->name('music.')->group(function () {
     Route::get('/', [MusicController::class, 'index'])->name('index');
     Route::post('/pick', [MusicController::class, 'pick'])->name('pick');
+    Route::put('/{music}/tags', [MusicController::class, 'updateTags'])->name('tags.update');
     Route::delete('/{music}/delete', [MusicController::class, 'destroy'])->name('destroy');
     Route::get('/stream/{music}', [MusicController::class, 'stream'])->name('stream');
     Route::get('/cover/{music}', [MusicController::class, 'cover'])->name('cover');

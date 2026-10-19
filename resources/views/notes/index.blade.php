@@ -32,7 +32,7 @@
                 </div>
 
                 <p class="line-clamp-4 whitespace-pre-line text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-400">
-                    {{ $note->body }}
+                    {{ App\Support\RichText::toPlainText($note->body, $excerptLength) }}
                 </p>
 
                 <p class="mt-auto flex items-center gap-1.5 pt-2 text-xs font-bold text-slate-400 dark:text-slate-500">

@@ -21,7 +21,36 @@ class Music extends Model
         'album',
         'duration',
         'cover_image',
+        'tags',
     ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'duration' => 'integer',
+            'tags' => 'array',
+        ];
+    }
+
+    /**
+     * Tags as a clean list of strings, oldest-first order preserved.
+     *
+     * @return list<string>
+     */
+    public function tagList(): array
+    {
+        return collect($this->tags ?? [])
+            ->map(fn ($tag) => trim((string) $tag))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     /**
      * Whether the stored audio file is present on disk.

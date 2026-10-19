@@ -118,7 +118,7 @@ class MusicLibraryService
      * depends on where the track ends up being stored.
      *
      * @param  string  $sourcePath  Absolute path to the audio file.
-     * @return array{0: array{title?: string|null, artist?: string|null, album?: string|null, duration?: int|null}, 1: string|null}
+     * @return array{0: array{title?: string|null, artist?: string|null, album?: string|null, duration?: int|null, tags?: list<string>|null}, 1: string|null}
      */
     protected function extractMetadata(string $sourcePath): array
     {
@@ -130,12 +130,15 @@ class MusicLibraryService
             return [[], null];
         }
 
+        $genre = trim((string) ($info['comments']['genre'][0] ?? ''));
+
         return [
             [
                 'title' => $info['comments_html']['title'][0] ?? null,
                 'artist' => $info['comments_html']['artist'][0] ?? null,
                 'album' => $info['comments_html']['album'][0] ?? null,
                 'duration' => isset($info['playtime_seconds']) ? (int) round($info['playtime_seconds']) : null,
+                'tags' => $genre === '' ? null : [$genre],
             ],
             $this->storeCoverArt($info),
         ];

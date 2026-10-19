@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Todo;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Validation rules shared by todo create/update actions.
@@ -29,6 +31,8 @@ class TodoRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'items' => ['nullable', 'array'],
             'items.*' => ['nullable', 'string', 'max:500'],
+            'due_at' => ['nullable', 'date'],
+            'priority' => ['nullable', Rule::in(['none', ...Todo::PRIORITIES])],
         ];
     }
 }

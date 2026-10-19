@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Music;
 use App\Services\MusicLibraryService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Native\Laravel\Dialog;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -33,9 +35,15 @@ class MusicController extends Controller
 
     /**
      * Open a native file picker and import everything selected.
+     *
+     * The route is POST-only and the form must carry the explicit "pick"
+     * intent marker, so no stray request (hover prefetch included) can ever
+     * open a native dialog on its own.
      */
-    public function pick(): RedirectResponse
+    public function pick(Request $request): RedirectResponse
     {
+        $request->validate(['intent' => ['required', 'string', 'in:pick']]);
+
         $selected = Dialog::new()
             ->title('Select music files or a folder')
             ->properties(['openFile', 'openDirectory', 'multiSelections'])
@@ -123,6 +131,54 @@ class MusicController extends Controller
             'Accept-Ranges' => 'bytes',
             ...($status === 206 ? ['Content-Range' => "bytes {$start}-{$end}/{$size}"] : []),
         ]);
+    }
+
+    /**
+     * Replace a track's tag list and return the normalised result as JSON.
+     */
+    public function updateTags(Request $request, Music $music): JsonResponse
+    {
+        $validated = $request->validate([
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:40'],
+        ]);
+
+        $music->tags = $this->normaliseTags($validated['tags'] ?? []);
+        $music->save();
+
+        return response()->json([
+            'tags' => $music->tagList(),
+        ]);
+    }
+
+    /**
+     * Trim, drop empties, dedupe case-insensitively (first spelling wins)
+     * and cap the list.
+     *
+     * @param  array<int, mixed>  $tags
+     * @return list<string>
+     */
+    protected function normaliseTags(array $tags): array
+    {
+        $result = [];
+        $seen = [];
+
+        foreach ($tags as $tag) {
+            $tag = trim((string) $tag);
+
+            if ($tag === '' || isset($seen[mb_strtolower($tag)])) {
+                continue;
+            }
+
+            $seen[mb_strtolower($tag)] = true;
+            $result[] = $tag;
+
+            if (count($result) === 12) {
+                break;
+            }
+        }
+
+        return $result;
     }
 
     /**

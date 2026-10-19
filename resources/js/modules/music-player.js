@@ -14,6 +14,16 @@
  *
  * Library rows (.track): data-index|src|ok|title|artist|cover|duration.
  * Body dataset: data-music-shuffle-default="0|1" (from settings).
+ *
+ * Progress/volume are <x-slider> components (modules/slider.js): the ids
+ * land on the native inputs inside them, so they keep the value/input/change
+ * contract — but programmatic writes must dispatch a bubbled `input` event
+ * for the component to repaint (see syncSlider). The seek slider gets its tip
+ * text from root.tipOverride so it shows the target time, not the playhead.
+ *
+ * Tag editor (music/partial/track.blade.php): form[data-tag-form] (carries
+ * @csrf + action), [data-tag-chips] container of span.chip[data-tag],
+ * [data-tag-remove="tag"] buttons and a [data-tag-add] text input.
  */
 
 import { onReady } from '../support/ready';
@@ -44,6 +54,12 @@ function formatTime(seconds) {
     return h > 0
         ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
         : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/** Write a slider value and let modules/slider.js repaint --p and the tip. */
+function syncSlider(input, value) {
+    input.value = String(value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 /** Show a transient toast matching the global flash-message styling. */
@@ -140,7 +156,7 @@ function play(index) {
 
     renderTrackInfo(track);
 
-    ui.progress.value = 0;
+    syncSlider(ui.progress, 0);
     ui.currentTime.textContent = '0:00';
     ui.totalTime.textContent = formatTime(Number(track.dataset.duration));
 
@@ -211,7 +227,7 @@ function bindControls() {
 
     audio.addEventListener('timeupdate', () => {
         if (!state.seeking && Number.isFinite(audio.duration) && audio.duration > 0) {
-            ui.progress.value = (audio.currentTime / audio.duration) * 100;
+            syncSlider(ui.progress, (audio.currentTime / audio.duration) * 100);
         }
 
         ui.currentTime.textContent = formatTime(audio.currentTime);
@@ -256,30 +272,43 @@ function bindControls() {
         state.seeking = false;
     });
 
-    // Volume control persisted between sessions.
-    const savedVolume = localStorage.getItem(VOLUME_KEY);
+    // The seek slider's tip must show the drag target, not the playhead.
+    const progressRoot = ui.progress.closest('[data-slider]');
 
-    if (savedVolume !== null) {
-        audio.volume = Math.min(1, Math.max(0, Number(savedVolume)));
-        ui.volume.value = audio.volume * 100;
-    } else {
-        ui.volume.value = 100;
+    if (progressRoot) {
+        progressRoot.tipOverride = (percent) =>
+            Number.isFinite(audio.duration) && audio.duration > 0
+                ? formatTime((percent / 100) * audio.duration)
+                : '--:--';
     }
 
-    audio.muted = audio.volume === 0;
-    ui.mute.querySelector('i').className = audio.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+    // Volume control persisted between sessions. Muting swaps the level to
+    // zero and back so the previous volume survives the mute.
+    const savedVolume = localStorage.getItem(VOLUME_KEY);
+    let lastVolume = null;
+
+    audio.volume = savedVolume === null
+        ? 1
+        : Math.min(1, Math.max(0, Number(savedVolume)));
+
+    syncSlider(ui.volume, audio.volume * 100);
 
     ui.volume.addEventListener('input', () => {
-        audio.volume = ui.volume.value / 100;
-        audio.muted = audio.volume === 0;
+        audio.volume = Math.min(1, Math.max(0, ui.volume.value / 100));
         localStorage.setItem(VOLUME_KEY, String(audio.volume));
 
-        ui.mute.querySelector('i').className = audio.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+        ui.mute.querySelector('i').className = audio.volume === 0
+            ? 'bi bi-volume-mute-fill'
+            : 'bi bi-volume-up-fill';
     });
 
     ui.mute.addEventListener('click', () => {
-        audio.muted = !audio.muted;
-        ui.mute.querySelector('i').className = audio.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+        if (audio.volume > 0) {
+            lastVolume = audio.volume;
+            syncSlider(ui.volume, 0);
+        } else {
+            syncSlider(ui.volume, (lastVolume ?? 1) * 100);
+        }
     });
 
     controlsBound = true;
@@ -358,4 +387,127 @@ onReady(() => {
         showPlayer();
         updatePlayIcon();
     }
+});
+
+/* ---- Tag editor ----------------------------------------------------------
+ * Delegated at document level (bound once) so Turbo morphs cannot stack
+ * duplicate listeners. Saves are optimistic: chips re-render immediately,
+ * roll back with a toast if the PUT fails. The _token lives inside each
+ * form (@csrf) because the app has no CSRF meta tag.
+ */
+
+const CHIP_CLASS = 'chip bg-violet-500/15 text-violet-700 dark:bg-fuchsia-400/10 dark:text-fuchsia-200';
+
+/** Mirror of the server normalisation: trim, drop empty, dedupe, cap at 12. */
+function normaliseTags(list) {
+    const seen = new Set();
+    const tags = [];
+
+    for (const raw of list) {
+        const tag = String(raw).trim();
+
+        if (tag === '' || seen.has(tag.toLowerCase())) continue;
+
+        seen.add(tag.toLowerCase());
+        tags.push(tag);
+
+        if (tags.length === 12) break;
+    }
+
+    return tags;
+}
+
+function readTags(form) {
+    return [...form.querySelectorAll('[data-tag-chips] [data-tag]')].map((chip) => chip.dataset.tag);
+}
+
+function renderChips(form, tags) {
+    const chips = form.querySelector('[data-tag-chips]');
+
+    if (!chips) return;
+
+    chips.textContent = '';
+
+    tags.forEach((tag) => {
+        const chip = document.createElement('span');
+
+        chip.className = CHIP_CLASS;
+        chip.dataset.tag = tag;
+        chip.append(document.createTextNode(tag));
+
+        const remove = document.createElement('button');
+
+        remove.type = 'button';
+        remove.dataset.tagRemove = tag;
+        remove.title = 'Remove tag';
+        remove.className = '-me-1 opacity-60 transition hover:opacity-100';
+        remove.append(Object.assign(document.createElement('i'), { className: 'bi bi-x-lg text-[10px]' }));
+
+        chip.append(remove);
+        chips.append(chip);
+    });
+}
+
+function saveTags(form, tags) {
+    const previous = readTags(form);
+    const payload = normaliseTags(tags);
+
+    renderChips(form, payload);
+
+    window.axios
+        .put(form.action, { tags: payload, _token: form.querySelector('[name=_token]')?.value })
+        .then((response) => renderChips(form, response.data.tags ?? payload))
+        .catch(() => {
+            renderChips(form, previous);
+            showToast('The tag changes could not be saved.');
+        });
+}
+
+function commitNewTag(input) {
+    const form = input.closest('[data-tag-form]');
+
+    if (!form) return;
+
+    const tag = input.value.replace(/,/g, ' ').trim();
+
+    if (!tag) return;
+
+    saveTags(form, [...readTags(form), tag]);
+    input.value = '';
+}
+
+let tagsBound = false;
+
+onReady(() => {
+    if (tagsBound) return;
+
+    tagsBound = true;
+
+    document.addEventListener('submit', (event) => {
+        if (event.target instanceof HTMLElement && event.target.closest('[data-tag-form]')) {
+            event.preventDefault();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ',') return;
+
+        const input = event.target instanceof Element ? event.target.closest('[data-tag-add]') : null;
+
+        if (!input) return;
+
+        // Enter would otherwise implicitly submit the tag form.
+        event.preventDefault();
+        commitNewTag(input);
+    });
+
+    document.addEventListener('click', (event) => {
+        const button = event.target instanceof Element ? event.target.closest('[data-tag-remove]') : null;
+
+        if (!button) return;
+
+        const form = button.closest('[data-tag-form]');
+
+        saveTags(form, readTags(form).filter((tag) => tag !== button.dataset.tagRemove));
+    });
 });

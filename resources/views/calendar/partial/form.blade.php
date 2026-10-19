@@ -1,5 +1,13 @@
 {{-- Shared event editor form (expects $action, $date and optional $event) --}}
-@php($event = $event ?? null)
+@php
+    $event = $event ?? null;
+
+    // Stored or old() coordinates; the map module falls back to a neutral
+    // centre with no marker when both are empty.
+    $mapLat = old('latitude', $event?->latitude);
+    $mapLng = old('longitude', $event?->longitude);
+    $hasPoint = filled($mapLat) && filled($mapLng);
+@endphp
 
 <form id="event-form" method="POST" action="{{ $action }}" class="flex flex-col gap-4 animate-fade-up">
     @csrf
@@ -62,6 +70,7 @@
                   placeholder="Details (optional)">{{ old('description', $event?->description) }}</textarea>
     </div>
 
+    {{-- Location: place label + Leaflet picker (resources/js/modules/event-map.js) --}}
     <div>
         <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Address
@@ -70,5 +79,33 @@
         <input type="text" name="address" value="{{ old('address', $event?->address) }}"
                class="field-input"
                placeholder="Where? (optional)"/>
+
+        @error('address')
+            <span class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
+        @enderror
+
+        <p class="mt-1.5 text-xs font-bold text-slate-400 dark:text-slate-500" data-map-coords>
+            @if ($hasPoint)
+                <i class="bi bi-geo-alt me-1"></i>{{ $mapLat }}, {{ $mapLng }}
+            @else
+                <i class="bi bi-geo-alt me-1"></i>No point picked — click the map or drag the pin.
+            @endif
+        </p>
+
+        <input type="hidden" name="latitude" value="{{ $mapLat }}"/>
+        <input type="hidden" name="longitude" value="{{ $mapLng }}"/>
+
+        <div data-map class="map-canvas mt-2"
+             data-lat="{{ $mapLat }}"
+             data-lng="{{ $mapLng }}"
+             data-address="{{ old('address', $event?->address) }}"></div>
+
+        @error('latitude')
+            <span class="field-error">{{ $message }}</span>
+        @enderror
+
+        @error('longitude')
+            <span class="field-error">{{ $message }}</span>
+        @enderror
     </div>
 </form>

@@ -35,7 +35,7 @@
         </div>
     @endif
 
-    <ul class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+    <ul class="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
         @forelse ($cities as $city)
             <li class="glass glass-hover flex items-center gap-4 p-4 animate-fade-up"
                 style="animation-delay: {{ ($loop->index % 10) * 50 }}ms">
@@ -93,18 +93,18 @@
                 <li class="col-span-full">
                     <div class="glass flex items-center gap-4 p-4 animate-pop-in">
                         <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400/20 to-blue-600/20 text-2xl text-sky-600 dark:text-sky-300">
-                            <i class="bi {{ weatherIcon($remote['weather'][0]['main'] ?? null) }}"></i>
+                            <i class="bi {{ weatherIcon(data_get($remote, 'weather.0.main')) }}"></i>
                         </span>
 
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-bold sm:text-lg">{{ $remote['name'] }}</p>
+                            <p class="truncate font-bold sm:text-lg">{{ data_get($remote, 'name') ?: $search }}</p>
                             <p class="truncate text-xs font-bold capitalize text-slate-500 dark:text-slate-400">
-                                {{ $remote['weather'][0]['description'] ?? '' }}
+                                {{ data_get($remote, 'weather.0.description') ?: data_get($remote, 'weather.0.main') ?: '' }}
                             </p>
                         </div>
 
                         <span class="heading shrink-0 text-3xl sm:text-4xl">
-                            {{ round($remote['main']['temp']) }}{{ temperatureUnitSymbol($weatherUnits) }}
+                            {{ round((float) data_get($remote, 'main.temp')) }}{{ temperatureUnitSymbol($weatherUnits) }}
                         </span>
 
                         <form method="POST" action="{{ route('weather.cities.store') }}" class="shrink-0">

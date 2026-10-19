@@ -38,45 +38,62 @@
                     <i class="bi {{ $tab['icon'] }} text-violet-500 dark:text-fuchsia-400"></i>{{ $tab['label'] }}
                 </h2>
 
-                @forelse ($tab['fields'] as $field)
-                    <div class="{{ $loop->last ? '' : 'mb-6' }}">
-                        @if ($field['type'] === 'switch')
-                            <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-900/10 bg-white/50 p-4 transition hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/10">
-                                <span class="text-sm font-bold capitalize">{{ str($field['key'])->replace('_', ' ') }}</span>
-
-                                <span class="relative inline-flex">
-                                    <input type="hidden" name="{{ $field['key'] }}" value="0"/>
-                                    <input type="checkbox" name="{{ $field['key'] }}" value="1"
-                                           class="peer sr-only" @checked($field['current'] === '1')/>
-
-                                    <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
-                                    <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
-                                </span>
-                            </label>
-                        @else
-                            <p class="mb-2.5 text-sm font-bold capitalize">{{ str($field['key'])->remove(['_format', '_start', '_precision'])->replace('_', ' ') }}</p>
-
-                            <div class="{{ count($field['options']) > 3 ? 'flex flex-wrap gap-2.5' : 'grid grid-cols-' . count($field['options']) . ' gap-3' }}">
-                                @foreach ($field['options'] as $value => $option)
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="{{ $field['key'] }}" value="{{ $value }}"
-                                               class="peer sr-only" @checked($field['current'] == $value)/>
-
-                                        <span class="block rounded-xl border-2 border-slate-900/10 bg-white/50 px-4 py-2.5 text-center text-sm font-bold transition-all
-                                            peer-checked:border-violet-500 peer-checked:bg-violet-500/10 peer-checked:text-violet-700 hover:bg-white
-                                            dark:border-white/10 dark:bg-white/[0.04] dark:peer-checked:text-fuchsia-300 dark:hover:bg-white/10">
-                                            {{ $option }}
-                                        </span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                @empty
+                @if ($tab['fields'] === [])
                     <p class="text-sm font-bold text-slate-400 dark:text-slate-500">
                         No preferences for this tool yet.
                     </p>
-                @endforelse
+                @endif
+
+                @foreach ($tab['sections'] ?? [['title' => null, 'keys' => array_keys($tab['fields'])]] as $section)
+                    @if (filled($section['title'] ?? null))
+                        <div class="{{ $loop->first ? 'mb-3' : 'mt-8 mb-3' }} flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-slate-900/5 pb-2 dark:border-white/10">
+                            <h3 class="text-xs font-black uppercase tracking-widest text-violet-500 dark:text-fuchsia-400">{{ $section['title'] }}</h3>
+                            @if (filled($section['hint'] ?? null))
+                                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500">{{ $section['hint'] }}</p>
+                            @endif
+                        </div>
+                    @endif
+
+                    {{-- Switches pack two-up, option groups keep the full width --}}
+                    <div class="grid gap-3 {{ $loop->last ? '' : 'mb-6' }} sm:grid-cols-2">
+                        @foreach ($section['keys'] as $key)
+                            @php($field = $tab['fields'][$key])
+                            <div class="{{ $field['type'] === 'switch' ? '' : 'sm:col-span-2' }}">
+                                @if ($field['type'] === 'switch')
+                                    <label class="flex h-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-900/10 bg-white/50 p-4 transition hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/10">
+                                        <span class="text-sm font-bold">{{ $field['label'] ?? str($field['key'])->replace('_', ' ') }}</span>
+
+                                        <span class="relative inline-flex shrink-0">
+                                            <input type="hidden" name="{{ $field['key'] }}" value="0"/>
+                                            <input type="checkbox" name="{{ $field['key'] }}" value="1"
+                                                   class="peer sr-only" @checked($field['current'] === '1')/>
+
+                                            <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
+                                            <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
+                                        </span>
+                                    </label>
+                                @else
+                                    <p class="mb-2.5 text-sm font-bold capitalize">{{ $field['label'] ?? str($field['key'])->remove(['_format', '_start', '_precision'])->replace('_', ' ') }}</p>
+
+                                    <div class="{{ count($field['options']) > 3 ? 'flex flex-wrap gap-2.5' : 'grid grid-cols-' . count($field['options']) . ' gap-3' }}">
+                                        @foreach ($field['options'] as $value => $option)
+                                            <label class="cursor-pointer">
+                                                <input type="radio" name="{{ $field['key'] }}" value="{{ $value }}"
+                                                       class="peer sr-only" @checked($field['current'] == $value)/>
+
+                                                <span class="block rounded-xl border-2 border-slate-900/10 bg-white/50 px-4 py-2.5 text-center text-sm font-bold transition-all
+                                                    peer-checked:border-violet-500 peer-checked:bg-violet-500/10 peer-checked:text-violet-700 hover:bg-white
+                                                    dark:border-white/10 dark:bg-white/[0.04] dark:peer-checked:text-fuchsia-300 dark:hover:bg-white/10">
+                                                    {{ $option }}
+                                                </span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
             </section>
         @endforeach
         </div>

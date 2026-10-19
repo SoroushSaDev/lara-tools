@@ -15,13 +15,17 @@ use Illuminate\Validation\Rule;
  * TABS drives everything: validation rules, the rendered form and the
  * values shown. Adding a preference is a one-line change here plus the
  * code that consumes it.
+ *
+ * A tab may split its fields into sections (presentational only — keys
+ * must name fields declared in the same tab), and any field may carry a
+ * `label` instead of the name derived from its key.
  */
 class SettingsController extends Controller
 {
     /**
      * Preference schema grouped by tool tab.
      *
-     * @var array<string, array{label: string, icon: string, fields: array<string, array{type: string, values?: list<string>, options?: array<string, string>, default: string|int}>}>
+     * @var array<string, array{label: string, icon: string, fields: array<string, array{type: string, options?: array<string, string>, label?: string, default: string|int}>, sections?: list<array{title: string, hint?: string, keys: list<string>}>}>
      */
     protected const TABS = [
         'general' => [
@@ -32,6 +36,115 @@ class SettingsController extends Controller
                     'type' => 'radio',
                     'options' => ['light' => 'Light', 'dark' => 'Dark', 'system' => 'System'],
                     'default' => 'dark',
+                ],
+                'confirm_deletes' => [
+                    'type' => 'switch',
+                    'label' => 'Ask before moving anything to the bin',
+                    'default' => '1',
+                ],
+            ],
+        ],
+        'dashboard' => [
+            'label' => 'Dashboard',
+            'icon' => 'bi-collection',
+            'sections' => [
+                [
+                    'title' => 'Statistics',
+                    'hint' => 'The counters row on top of the dashboard.',
+                    'keys' => [
+                        'dashboard_show_stats',
+                        'dashboard_stat_notes',
+                        'dashboard_stat_open_items',
+                        'dashboard_stat_events',
+                        'dashboard_stat_tracks',
+                    ],
+                ],
+                [
+                    'title' => 'Shortcuts',
+                    'hint' => 'The tool tiles that open every module.',
+                    'keys' => [
+                        'dashboard_show_shortcuts',
+                        'dashboard_shortcut_notes',
+                        'dashboard_shortcut_todos',
+                        'dashboard_shortcut_calendar',
+                        'dashboard_shortcut_music',
+                        'dashboard_shortcut_weather',
+                        'dashboard_shortcut_calculator',
+                        'dashboard_shortcut_clock',
+                        'dashboard_shortcut_converter',
+                    ],
+                ],
+            ],
+            'fields' => [
+                'dashboard_show_stats' => [
+                    'type' => 'switch',
+                    'label' => 'Show statistics',
+                    'default' => '1',
+                ],
+                'dashboard_stat_notes' => [
+                    'type' => 'switch',
+                    'label' => 'Notes',
+                    'default' => '1',
+                ],
+                'dashboard_stat_open_items' => [
+                    'type' => 'switch',
+                    'label' => 'Open items',
+                    'default' => '1',
+                ],
+                'dashboard_stat_events' => [
+                    'type' => 'switch',
+                    'label' => 'Upcoming events',
+                    'default' => '1',
+                ],
+                'dashboard_stat_tracks' => [
+                    'type' => 'switch',
+                    'label' => 'Tracks',
+                    'default' => '1',
+                ],
+                'dashboard_show_shortcuts' => [
+                    'type' => 'switch',
+                    'label' => 'Show shortcuts',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_notes' => [
+                    'type' => 'switch',
+                    'label' => 'Notes',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_todos' => [
+                    'type' => 'switch',
+                    'label' => 'Todo Lists',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_calendar' => [
+                    'type' => 'switch',
+                    'label' => 'Calendar',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_music' => [
+                    'type' => 'switch',
+                    'label' => 'Music Player',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_weather' => [
+                    'type' => 'switch',
+                    'label' => 'Weather',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_calculator' => [
+                    'type' => 'switch',
+                    'label' => 'Calculator',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_clock' => [
+                    'type' => 'switch',
+                    'label' => 'Clock',
+                    'default' => '1',
+                ],
+                'dashboard_shortcut_converter' => [
+                    'type' => 'switch',
+                    'label' => 'Unit Converter',
+                    'default' => '1',
                 ],
             ],
         ],
@@ -44,12 +157,35 @@ class SettingsController extends Controller
                     'options' => ['newest' => 'Newest first', 'oldest' => 'Oldest first', 'title' => 'By title'],
                     'default' => 'newest',
                 ],
+                'notes_excerpt_length' => [
+                    'type' => 'radio',
+                    'label' => 'Card excerpt length',
+                    'options' => ['80' => '80 characters', '160' => '160 characters', '240' => '240 characters', '400' => '400 characters'],
+                    'default' => '160',
+                ],
+                'notes_toolbar_compact' => [
+                    'type' => 'switch',
+                    'label' => 'Compact formatting toolbar',
+                    'default' => '0',
+                ],
             ],
         ],
         'todos' => [
             'label' => 'Todo Lists',
             'icon' => 'bi-list-check',
-            'fields' => [],
+            'fields' => [
+                'todos_sort' => [
+                    'type' => 'radio',
+                    'label' => 'Order lists by',
+                    'options' => ['newest' => 'Newest first', 'priority' => 'Priority', 'due' => 'Due date'],
+                    'default' => 'newest',
+                ],
+                'todos_hide_completed' => [
+                    'type' => 'switch',
+                    'label' => 'Hide lists with every item done',
+                    'default' => '0',
+                ],
+            ],
         ],
         'calendar' => [
             'label' => 'Calendar',
@@ -62,6 +198,12 @@ class SettingsController extends Controller
                 ],
                 'calendar_show_holidays' => [
                     'type' => 'switch',
+                    'label' => 'Show public holidays',
+                    'default' => '1',
+                ],
+                'calendar_show_locations' => [
+                    'type' => 'switch',
+                    'label' => 'Show event locations',
                     'default' => '1',
                 ],
             ],
@@ -72,7 +214,13 @@ class SettingsController extends Controller
             'fields' => [
                 'music_shuffle_default' => [
                     'type' => 'switch',
+                    'label' => 'Start shuffled',
                     'default' => '0',
+                ],
+                'music_show_tags' => [
+                    'type' => 'switch',
+                    'label' => 'Show the tag editor on each track',
+                    'default' => '1',
                 ],
             ],
         ],
@@ -84,6 +232,11 @@ class SettingsController extends Controller
                     'type' => 'radio',
                     'options' => ['metric' => '°C · Metric', 'imperial' => '°F · Imperial'],
                     'default' => 'metric',
+                ],
+                'weather_show_technical' => [
+                    'type' => 'switch',
+                    'label' => 'Show the technical details card',
+                    'default' => '1',
                 ],
             ],
         ],
@@ -98,6 +251,12 @@ class SettingsController extends Controller
                 ],
                 'clock_show_seconds' => [
                     'type' => 'switch',
+                    'label' => 'Tick the seconds',
+                    'default' => '1',
+                ],
+                'clock_show_analog' => [
+                    'type' => 'switch',
+                    'label' => 'Show the analog face',
                     'default' => '1',
                 ],
             ],

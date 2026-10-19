@@ -199,7 +199,9 @@ function buildCategoryTabs(container) {
 
         pill.type = 'button';
         pill.dataset.category = key;
-        pill.className = 'tab-pill';
+        // gap-3.5 widens the icon↔text gap for converter pills only; the
+        // shared .tab-pill component keeps its own gap-2 everywhere else.
+        pill.className = 'tab-pill gap-3.5';
         pill.innerHTML = `<i class="bi ${category.icon}"></i>${category.label}`;
 
         container.appendChild(pill);

@@ -23,47 +23,51 @@
          data-date="{{ $date->toDateString() }}"
          data-event-days='@json($eventDays)'
          data-holiday-days="{{ json_encode($holidaysByDay, JSON_HEX_APOS | JSON_HEX_QUOT) }}"
-         data-week-start="{{ $weekStart }}">
-        {{-- Month navigation --}}
-        <div class="glass mb-5 flex items-center justify-between gap-2 p-3 animate-fade-up">
-            <button type="button" class="icon-btn" data-calendar-shift="-1" title="Previous month">
-                <i class="bi bi-chevron-left"></i>
-            </button>
+         data-week-start="{{ $weekStart }}"
+         class="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start lg:gap-6">
+        {{-- Left column: navigation + month grid --}}
+        <div class="min-w-0">
+            {{-- Month navigation --}}
+            <div class="glass mb-5 flex items-center justify-between gap-2 p-3 animate-fade-up">
+                <button type="button" class="icon-btn" data-calendar-shift="-1" title="Previous month">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
 
-            <div class="flex flex-wrap items-center justify-center gap-2">
-                <div class="dropdown relative min-w-[160px]">
-                    <select id="calendar-month" data-dropdown
-                            class="sr-only">
-                        @foreach (range(1, 12) as $month)
-                            <option value="{{ $month }}" @selected($month === $date->month)>
-                                {{ Carbon\Carbon::create()->month($month)->format('F') }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                    <div class="dropdown relative min-w-[160px]">
+                        <select id="calendar-month" data-dropdown
+                                class="sr-only">
+                            @foreach (range(1, 12) as $month)
+                                <option value="{{ $month }}" @selected($month === $date->month)>
+                                    {{ Carbon\Carbon::create()->month($month)->format('F') }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="dropdown relative min-w-[120px]">
+                        <select id="calendar-year" data-dropdown
+                                class="sr-only">
+                            @foreach (range(now()->year - 6, now()->year + 6) as $year)
+                                <option value="{{ $year }}" @selected($year === $date->year)>{{ $year }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
-                <div class="dropdown relative min-w-[120px]">
-                    <select id="calendar-year" data-dropdown
-                            class="sr-only">
-                        @foreach (range(now()->year - 6, now()->year + 6) as $year)
-                            <option value="{{ $year }}" @selected($year === $date->year)>{{ $year }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <button type="button" class="icon-btn" data-calendar-shift="1" title="Next month">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
             </div>
 
-            <button type="button" class="icon-btn" data-calendar-shift="1" title="Next month">
-                <i class="bi bi-chevron-right"></i>
-            </button>
+            {{-- Day grid (headers + cells rendered by JS) --}}
+            <div class="glass p-3 animate-fade-up sm:p-5" style="animation-delay: 60ms">
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
+            </div>
         </div>
 
-        {{-- Day grid (headers + cells rendered by JS) --}}
-        <div class="glass p-3 animate-fade-up sm:p-5" style="animation-delay: 60ms">
-            <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
-        </div>
-
-        {{-- Selected day details --}}
-        <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {{-- Right column: selected day details (events above holidays), sticky --}}
+        <aside class="mt-5 flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:mt-0 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             <section class="glass p-5 animate-fade-up" style="animation-delay: 120ms">
                 <h3 class="heading mb-3 flex items-center gap-2 text-base">
                     <i class="bi bi-stars text-fuchsia-500"></i>Your events · {{ $date->format('M j') }}
@@ -82,10 +86,18 @@
                                 <p class="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $event->description }}</p>
                             @endif
 
-                            @if ($event->address)
-                                <p class="truncate text-xs font-semibold text-slate-400 dark:text-slate-500">
-                                    <i class="bi bi-geo-alt me-1"></i>{{ $event->address }}
-                                </p>
+                            @if ($calendarShowLocations)
+                                @if ($event->hasLocation())
+                                    <a href="https://www.openstreetmap.org/?mlat={{ $event->latitude }}&mlon={{ $event->longitude }}#map=16/{{ $event->latitude }}/{{ $event->longitude }}"
+                                       target="_blank" rel="noopener noreferrer" data-turbo="false"
+                                       class="block truncate text-xs font-semibold text-slate-400 transition-colors hover:text-violet-500 dark:text-slate-500 dark:hover:text-fuchsia-400">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ $event->address ?: ($event->latitude.', '.$event->longitude) }}
+                                    </a>
+                                @elseif ($event->address)
+                                    <p class="truncate text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ $event->address }}
+                                    </p>
+                                @endif
                             @endif
                         </div>
 
@@ -127,6 +139,6 @@
                     </p>
                 @endforelse
             </section>
-        </div>
+        </aside>
     </div>
 @endsection

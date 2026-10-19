@@ -80,14 +80,16 @@
         {{-- Progress + volume --}}
         <div class="flex items-center gap-3">
             <span id="player-current-time" class="w-10 shrink-0 text-right text-xs font-bold tabular-nums text-slate-500 dark:text-slate-400">0:00</span>
-            <input type="range" id="player-progress" class="range flex-1" min="0" max="100" step="0.1" value="0"/>
+            <x-slider id="player-progress" label="Seek" min="0" max="100" step="0.1" value="0"
+                      format="time" class="flex-1"/>
             <span id="player-total-time" class="w-10 shrink-0 text-xs font-bold tabular-nums text-slate-500 dark:text-slate-400">--:--</span>
 
             <span class="hidden items-center gap-2 sm:flex">
                 <button type="button" id="player-mute" class="icon-btn !size-8 !border-0 !bg-transparent" title="Mute">
                     <i class="bi bi-volume-up-fill"></i>
                 </button>
-                <input type="range" id="player-volume" class="range w-24" min="0" max="100" step="1" value="100"/>
+                <x-slider id="player-volume" label="Volume" min="0" max="100" step="1" value="100"
+                          format="percent" class="w-24"/>
             </span>
         </div>
     </div>
