@@ -97,30 +97,3 @@
         </div>
     </div>
 @endsection
-
-@push('script')
-    <script>
-        (() => {
-            const modal = document.getElementById('changelog-modal');
-
-            const open = () => {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            };
-
-            modal?.querySelectorAll('[data-changelog-close]').forEach((el) => el.addEventListener('click', () => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }));
-
-            document.querySelector('[data-changelog-open]')?.addEventListener('click', open);
-
-            document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                }
-            });
-        })();
-    </script>
-@endpush

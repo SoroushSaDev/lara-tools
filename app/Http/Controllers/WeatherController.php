@@ -9,6 +9,7 @@ use App\Models\City;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Weather dashboard plus management of saved cities.
@@ -26,10 +27,11 @@ class WeatherController extends Controller
     /**
      * Show the weather dashboard.
      *
-     * Supports three modes:
-     *  - "?lat=..&lon=.." renders live data for the device location.
+     * Supports two modes:
      *  - "?city=Name" renders the saved city matching that name.
      *  - Without parameters the home town (or first saved city) is shown.
+     *
+     * Live device coordinates are handled by locate() instead.
      */
     public function index(Request $request): View
     {
@@ -150,7 +152,7 @@ class WeatherController extends Controller
         ]);
 
         return redirect()
-            ->route('weather.cities')
+            ->route('weather.cities.index')
             ->with('success', "{$city->name} added.");
     }
 
@@ -192,14 +194,16 @@ class WeatherController extends Controller
      */
     public function destroy(City $city): RedirectResponse
     {
-        if ($city->isHomeTown()) {
-            $this->settings->forget('home-town');
-        }
+        DB::transaction(function () use ($city): void {
+            if ($city->isHomeTown()) {
+                $this->settings->forget('home-town');
+            }
 
-        $city->delete();
+            $city->delete();
+        });
 
         return redirect()
-            ->route('weather.cities')
+            ->route('weather.cities.index')
             ->with('success', "{$city->name} moved to the recycle bin.");
     }
 

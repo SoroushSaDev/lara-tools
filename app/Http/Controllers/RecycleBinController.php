@@ -33,6 +33,8 @@ class RecycleBinController extends Controller
      */
     public function restore(string $type, int $id): RedirectResponse
     {
+        abort_unless($this->bin->handles($type), 404);
+
         return $this->bin->restore($type, $id)
             ? back()->with('success', 'Item restored.')
             : back()->with('error', 'That item no longer exists.');
@@ -43,6 +45,8 @@ class RecycleBinController extends Controller
      */
     public function destroy(string $type, int $id): RedirectResponse
     {
+        abort_unless($this->bin->handles($type), 404);
+
         return $this->bin->purge($type, $id)
             ? back()->with('success', 'Item permanently deleted.')
             : back()->with('error', 'That item no longer exists.');

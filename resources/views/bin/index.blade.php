@@ -74,7 +74,7 @@
                                 @method('DELETE')
 
                                 <button type="submit" data-confirm="Permanently delete this item? This cannot be undone."
-                                        class="icon-btn hover:!text-rose-500" title="Delete forever">
+                                        class="icon-btn icon-btn-danger" title="Delete forever">
                                     <i class="bi bi-trash3-fill"></i>
                                 </button>
                             </form>

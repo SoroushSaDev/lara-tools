@@ -7,11 +7,13 @@
 
     <title>@yield('title', 'LaraTools') · LaraTools</title>
 
-    <!-- Apply the saved theme before first paint to avoid a flash. -->
+    <!-- Apply the saved theme before first paint to avoid a flash.
+         Client-side choices (localStorage) win over the server-rendered
+         preference so a local toggle never gets reverted on reload. -->
     <script>
         (function () {
-            var pref = document.documentElement.dataset.themePref
-                || localStorage.getItem('lara-tools.theme')
+            var pref = localStorage.getItem('lara-tools.theme')
+                || document.documentElement.dataset.themePref
                 || 'dark';
             var dark = pref === 'dark'
                 || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

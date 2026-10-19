@@ -16,7 +16,7 @@
                 @csrf
                 @method('DELETE')
 
-                <button type="submit" data-confirm="Move this note to the recycle bin?" class="icon-btn hover:!text-rose-500" title="Delete note">
+                <button type="submit" data-confirm="Move this note to the recycle bin?" class="icon-btn icon-btn-danger" title="Delete note">
                     <i class="bi bi-trash3"></i>
                 </button>
             </form>

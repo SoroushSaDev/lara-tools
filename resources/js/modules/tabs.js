@@ -1,11 +1,11 @@
 /**
- * Generic tab switcher used by the Clock, Converter and Settings pages.
+ * Generic tab switcher used by the Clock and Settings pages.
  *
  * Contract with Blade views:
  *  - Tab triggers:  [data-tab="panel-id"]
  *  - Panels:        [data-tab-panel="panel-id"]
  *  - Active styling is applied to triggers via [data-tab].is-active;
- *      panels are toggled by the hidden attribute.
+ *      panels are toggled by the hidden attribute, so exactly one is open.
  *  - An initial panel can be preselected server-side by rendering that
  *      trigger/panel pair active and all others hidden.
  */
@@ -13,14 +13,18 @@
 import { onReady } from '../support/ready';
 
 function activate(root, id) {
+    root.setAttribute('role', root.getAttribute('role') ?? 'presentation');
+
     root.querySelectorAll('[data-tab]').forEach((trigger) => {
         const isActive = trigger.dataset.tab === id;
 
-        trigger.classList.toggle('is-active', isActive);
+        trigger.setAttribute('role', 'tab');
         trigger.setAttribute('aria-selected', String(isActive));
+        trigger.classList.toggle('is-active', isActive);
     });
 
     root.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+        panel.setAttribute('role', 'tabpanel');
         panel.toggleAttribute('hidden', panel.dataset.tabPanel !== id);
     });
 }
@@ -37,12 +41,16 @@ onReady(() => {
         activate(root, known && requested ? requested : (root.querySelector('[data-tab].is-active')?.dataset.tab
             || root.querySelector('[data-tab]')?.dataset.tab));
 
-        root.addEventListener('click', (event) => {
-            const trigger = event.target.closest('[data-tab]');
+        if (!root.dataset.tabsBound) {
+            root.dataset.tabsBound = '1';
 
-            if (trigger) {
-                activate(root, trigger.dataset.tab);
-            }
-        });
+            root.addEventListener('click', (event) => {
+                const trigger = event.target.closest('[data-tab]');
+
+                if (trigger) {
+                    activate(root, trigger.dataset.tab);
+                }
+            });
+        }
     });
 });

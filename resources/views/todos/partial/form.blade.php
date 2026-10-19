@@ -49,59 +49,8 @@
         @enderror
     </div>
 
-    {{-- Template for new rows, cloned by the inline script below --}}
+    {{-- Template for new rows, cloned by modules/todo-editor.js --}}
     <template id="item-template">
         @include('todos.partial.item-row', ['text' => ''])
     </template>
 </form>
-
-@push('script')
-    <script>
-        (() => {
-            const list = document.getElementById('todo-items');
-            const template = document.getElementById('item-template');
-
-            const addRow = (focus = true, value = '') => {
-                const row = template.content.firstElementChild.cloneNode(true);
-                const input = row.querySelector('input');
-
-                input.value = value;
-                list.appendChild(row);
-
-                if (focus) input.focus();
-
-                return row;
-            };
-
-            document.getElementById('add-item').addEventListener('click', () => addRow());
-
-            list.addEventListener('click', (event) => {
-                if (!event.target.closest('[data-remove-item]')) return;
-
-                // Keep at least one row on screen.
-                if (list.children.length > 1) {
-                    event.target.closest('li').remove();
-                }
-            });
-
-            // Enter adds the next row; Backspace on an empty row removes it.
-            list.addEventListener('keydown', (event) => {
-                if (event.key !== 'Enter' && !(event.key === 'Backspace' && event.target.value === '')) return;
-
-                event.preventDefault();
-
-                if (event.key === 'Enter') {
-                    addRow(true);
-
-                    return;
-                }
-
-                if (list.children.length > 1) {
-                    const previous = event.target.closest('li').previousElementSibling;
-                    event.target.closest('li').remove();
-                    previous?.querySelector('input')?.focus();
-                }
-            });
-        })();
-    </script>
-@endpush

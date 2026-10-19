@@ -103,7 +103,7 @@ const ANGLE = {
 /** Categories shown as tabs; temperature is converted via transforms. */
 const CATEGORIES = {
     length: { label: 'Length', icon: 'bi-rulers', units: LENGTH },
-    mass: { label: 'Mass', icon: 'bi-scale', units: MASS },
+    mass: { label: 'Mass', icon: 'bi-box-seam', units: MASS },
     temperature: {
         label: 'Temperature', icon: 'bi-thermometer-half',
         units: { c: ['Celsius'], f: ['Fahrenheit'], k: ['Kelvin'], r: ['Rankine'] },
@@ -113,7 +113,7 @@ const CATEGORIES = {
     speed: { label: 'Speed', icon: 'bi-speedometer2', units: SPEED },
     time: { label: 'Time', icon: 'bi-clock-history', units: TIME },
     data: { label: 'Data', icon: 'bi-device-hdd', units: DATA },
-    pressure: { label: 'Pressure', icon: 'bi-gauge', units: PRESSURE },
+    pressure: { label: 'Pressure', icon: 'bi-speedometer', units: PRESSURE },
     energy: { label: 'Energy', icon: 'bi-lightning-charge', units: ENERGY },
     angle: { label: 'Angle', icon: 'bi-compass', units: ANGLE },
 };
@@ -153,6 +153,9 @@ function populateSelects() {
         ? els.from.dataset.last : codes[0];
     els.to.value = codes.includes(els.to.dataset.last)
         ? els.to.dataset.last : codes[1] ?? codes[0];
+
+    els.from.dispatchEvent(new Event('change', { bubbles: true }));
+    els.to.dispatchEvent(new Event('change', { bubbles: true }));
 
     els.from.dataset.last = els.from.value;
     els.to.dataset.last = els.to.value;
@@ -209,6 +212,16 @@ function renderCategoryTabs() {
     });
 }
 
+/** Attach a listener only once per node, surviving Turbo DOM morphs. */
+function bindOnce(el, event, handler) {
+    const flag = `bound${event}`;
+
+    if (!el || el.dataset[flag]) return;
+
+    el.dataset[flag] = '1';
+    el.addEventListener(event, handler);
+}
+
 onReady(() => {
     const root = document.getElementById('converter-root');
 
@@ -231,7 +244,7 @@ onReady(() => {
     populateSelects();
     convert();
 
-    root.addEventListener('click', (event) => {
+    bindOnce(root, 'click', (event) => {
         const pill = event.target.closest('[data-category]');
 
         if (!pill || pill.dataset.category === activeCategory) return;
@@ -244,20 +257,22 @@ onReady(() => {
         convert();
     });
 
-    els.input.addEventListener('input', convert);
-    els.from.addEventListener('change', () => {
+    bindOnce(els.input, 'input', convert);
+    bindOnce(els.from, 'change', () => {
         els.from.dataset.last = els.from.value;
         convert();
     });
-    els.to.addEventListener('change', () => {
+    bindOnce(els.to, 'change', () => {
         els.to.dataset.last = els.to.value;
         convert();
     });
 
-    document.getElementById('conv-swap')?.addEventListener('click', () => {
+    bindOnce(document.getElementById('conv-swap'), 'click', () => {
         [els.from.value, els.to.value] = [els.to.value, els.from.value];
         els.from.dataset.last = els.from.value;
         els.to.dataset.last = els.to.value;
+        els.from.dispatchEvent(new Event('change', { bubbles: true }));
+        els.to.dispatchEvent(new Event('change', { bubbles: true }));
         convert();
     });
 });

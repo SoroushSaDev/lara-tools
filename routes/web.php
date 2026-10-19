@@ -32,6 +32,7 @@ Route::resource('notes', NoteController::class);
 // Todo lists + per-item completion toggles.
 Route::resource('todos', TodoController::class);
 Route::patch('todos/{todo}/items/{index}', [TodoController::class, 'toggleItem'])
+    ->whereNumber('index')
     ->name('todos.items.toggle');
 
 // Calendar events.
@@ -47,7 +48,7 @@ Route::prefix('calendar')->name('calendar.')->group(function () {
 // Music library.
 Route::prefix('music')->name('music.')->group(function () {
     Route::get('/', [MusicController::class, 'index'])->name('index');
-    Route::get('/pick', [MusicController::class, 'pick'])->name('pick');
+    Route::post('/pick', [MusicController::class, 'pick'])->name('pick');
     Route::delete('/{music}/delete', [MusicController::class, 'destroy'])->name('destroy');
     Route::get('/stream/{music}', [MusicController::class, 'stream'])->name('stream');
     Route::get('/cover/{music}', [MusicController::class, 'cover'])->name('cover');
@@ -84,7 +85,7 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 // Recycle bin for soft-deleted records.
 Route::prefix('bin')->name('bin.')->group(function () {
     Route::get('/', [RecycleBinController::class, 'index'])->name('index');
-    Route::post('/{type}/{id}/restore', [RecycleBinController::class, 'restore'])->name('restore');
-    Route::delete('/{type}/{id}', [RecycleBinController::class, 'destroy'])->name('destroy');
+    Route::post('/{type}/{id}/restore', [RecycleBinController::class, 'restore'])->whereNumber('id')->name('restore');
+    Route::delete('/{type}/{id}', [RecycleBinController::class, 'destroy'])->whereNumber('id')->name('destroy');
     Route::post('/empty', [RecycleBinController::class, 'empty'])->name('empty');
 });

@@ -35,7 +35,9 @@ function runPendingAction() {
     const form = action.closest('form');
 
     if (form) {
-        form.submit();
+        // requestSubmit() keeps validation and the submit event alive, so
+        // Turbo (and any submit handlers) still see the navigation.
+        form.requestSubmit();
     } else if (action.href) {
         window.location.href = action.href;
     }

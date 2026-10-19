@@ -5,7 +5,7 @@
            placeholder="Write a checklist item..."/>
 
     <button type="button" data-remove-item
-            class="icon-btn size-9 shrink-0 hover:!text-rose-500"
+            class="icon-btn icon-btn-danger size-9 shrink-0"
             title="Remove row">
         <i class="bi bi-dash-lg"></i>
     </button>

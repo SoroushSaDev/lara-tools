@@ -11,9 +11,6 @@
     <span class="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-pink-400 to-fuchsia-600 text-xl text-white shadow-md sm:size-14">
         @if ($track->coverExists())
             <img src="{{ $track->coverUrl() }}" alt="" class="absolute inset-0 size-full object-cover"/>
-            <span data-active-overlay class="absolute inset-0 hidden items-center justify-center bg-black/45">
-                <i class="bi bi-volume-up-fill"></i>
-            </span>
         @else
             <i class="bi bi-music-note-beamed transition-transform duration-300 group-hover:scale-110"></i>
         @endif
@@ -55,7 +52,7 @@
         @method('DELETE')
 
         <button type="submit" data-confirm="Move this track to the recycle bin?"
-                class="icon-btn !size-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:!text-rose-500"
+                class="icon-btn icon-btn-danger !size-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 title="Remove track">
             <i class="bi bi-trash3"></i>
         </button>

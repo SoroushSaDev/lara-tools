@@ -14,6 +14,8 @@
         <x-nav-link name="calendar.index" icon="bi-calendar-event-fill" label="Calendar"/>
         <x-nav-link name="music.index" icon="bi-music-note-beamed" label="Music"/>
         <x-nav-link name="calculator" icon="bi-calculator-fill" label="Calculator" exact/>
+        <x-nav-link name="converter" icon="bi-arrow-left-right" label="Converter" exact/>
+        <x-nav-link name="clock" icon="bi-clock-fill" label="Clock" exact/>
         <x-nav-link name="weather.index" icon="bi-cloud-sun-fill" label="Weather"/>
     </nav>
 
@@ -22,13 +24,14 @@
         <x-nav-link name="settings" icon="bi-gear" label="Settings"/>
         <x-nav-link name="about" icon="bi-info-circle-fill" label="About"/>
 
-        <button type="button"
-                class="mt-3 flex items-center gap-3 self-stretch rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 transition-all duration-200 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-                data-theme-toggle
-                title="Toggle light / dark theme">
-            <i class="bi bi-moon-stars text-lg"></i>
-            <span data-theme-label>Dark</span>
-        </button>
+        {{-- Theme quick-switcher; choice persisted by modules/theme.js --}}
+        <div class="dropdown relative mt-3">
+            <select name="appearance" data-dropdown aria-label="Theme" class="sr-only">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+            </select>
+        </div>
 
         <p class="mt-2 px-2 text-[11px] font-bold text-slate-400 dark:text-slate-500">
             v{{ config('app.version') }}

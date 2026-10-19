@@ -1,22 +1,28 @@
 /**
  * Clock tool — four tabs driven by one ticking loop:
- *   clock     analog + digital real-time clock
+ *   world     local analog + digital clock and the pinned world clocks
  *   stopwatch lap-capable stopwatch
  *   timer     countdown with presets and an audible alert
- *   world     world clocks persisted through /clock/zones (server-rendered)
+ *   alarms    localStorage-backed alarms that ring while the tool is open
  *
  * Contract with the Blade view (#clock-root):
  *   data-clock-format="24h|12h" data-show-seconds="0|1"
  *   Analog hands:      #hand-hour #hand-minute #hand-second
  *   Digital readout:   #digital-time (+ #digital-seconds inside),
  *                      #digital-date
+ *   World clocks:      [data-zone-time][data-tz]
  *   Stopwatch:         #sw-display, #sw-start, #sw-lap, #sw-reset, #sw-laps
  *   Timer:             #timer-display, #timer-bar, #timer-minutes,
  *                      #timer-seconds, #timer-start, #timer-reset,
  *                      preset chips [data-timer-preset]
+ *   Alarms:            #alarm-form, #alarm-time, #alarm-label, #alarm-repeat,
+ *                      #alarm-list, #alarm-empty, #alarm-alert,
+ *                      #alarm-alert-text, #alarm-dismiss
  */
 
 import { onReady } from '../support/ready';
+
+const ALARMS_KEY = 'lara-tools.alarms';
 
 let root = null;
 
@@ -46,9 +52,27 @@ const timer = {
     finished: false,
 };
 
+const alarms = {
+    items: [],
+    list: null,
+    empty: null,
+    alert: null,
+    alertText: null,
+};
+
 /** Pad a number to two digits. */
 function pad(value) {
     return String(value).padStart(2, '0');
+}
+
+/** Attach a listener only once per node and event, surviving Turbo DOM morphs. */
+function bindOnce(el, event, handler) {
+    const flag = `bound${event}`;
+
+    if (!el || el.dataset[flag]) return;
+
+    el.dataset[flag] = '1';
+    el.addEventListener(event, handler);
 }
 
 /** Split a Date into display parts honouring the 12/24h preference. */
@@ -129,7 +153,7 @@ function stopWatchTick() {
 function bindStopwatch() {
     const startBtn = document.getElementById('sw-start');
 
-    startBtn?.addEventListener('click', () => {
+    bindOnce(startBtn, 'click', () => {
         stopwatch.running = !stopwatch.running;
 
         if (stopwatch.running) {
@@ -142,7 +166,7 @@ function bindStopwatch() {
         }
     });
 
-    document.getElementById('sw-lap')?.addEventListener('click', () => {
+    bindOnce(document.getElementById('sw-lap'), 'click', () => {
         if (!stopwatch.running && stopwatch.elapsed === 0) return;
 
         stopwatch.laps.unshift(stopwatch.elapsed);
@@ -157,7 +181,7 @@ function bindStopwatch() {
         stopwatch.lapsEl?.prepend(li);
     });
 
-    document.getElementById('sw-reset')?.addEventListener('click', () => {
+    bindOnce(document.getElementById('sw-reset'), 'click', () => {
         stopwatch.running = false;
         stopwatch.elapsed = 0;
         stopwatch.laps = [];
@@ -225,7 +249,7 @@ function timerTick() {
         renderTimer();
         beep();
 
-        const panel = document.getElementById('panel-timer');
+        const panel = document.querySelector('[data-tab-panel="timer"]');
 
         panel?.classList.add('animate-pop-in');
 
@@ -242,7 +266,7 @@ function timerTick() {
 function bindTimer() {
     const startBtn = document.getElementById('timer-start');
 
-    startBtn?.addEventListener('click', () => {
+    bindOnce(startBtn, 'click', () => {
         if (timer.running) {
             // Pause.
             timer.running = false;
@@ -269,7 +293,7 @@ function bindTimer() {
         startBtn.innerHTML = '<i class="bi bi-pause-fill"></i>Pause';
     });
 
-    document.getElementById('timer-reset')?.addEventListener('click', () => {
+    bindOnce(document.getElementById('timer-reset'), 'click', () => {
         timer.running = false;
         timer.finished = false;
         timer.remainingMs = 0;
@@ -280,7 +304,7 @@ function bindTimer() {
     });
 
     document.querySelectorAll('[data-timer-preset]').forEach((chip) => {
-        chip.addEventListener('click', () => {
+        bindOnce(chip, 'click', () => {
             const minutesInput = document.getElementById('timer-minutes');
             const secondsInput = document.getElementById('timer-seconds');
 
@@ -320,6 +344,198 @@ function renderWorld() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Alarms                                                              */
+/* ------------------------------------------------------------------ */
+
+/** Render "07:30" honouring the 12/24h preference. */
+function formatAlarmTime(time) {
+    if (root?.dataset.clockFormat !== '12h') return time;
+
+    const [hours, minutes] = time.split(':').map(Number);
+
+    return `${(hours % 12) || 12}:${pad(minutes)} ${hours >= 12 ? 'PM' : 'AM'}`;
+}
+
+function loadAlarms() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(ALARMS_KEY) ?? '[]');
+
+        return Array.isArray(stored)
+            ? stored.filter((alarm) => /^\d{2}:\d{2}$/.test(alarm?.time))
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveAlarms() {
+    try {
+        localStorage.setItem(ALARMS_KEY, JSON.stringify(alarms.items));
+    } catch {
+        // Storage unavailable; the alarms still work for this session.
+    }
+}
+
+function renderAlarms() {
+    if (!alarms.list) return;
+
+    alarms.list.textContent = '';
+    alarms.empty?.classList.toggle('hidden', alarms.items.length > 0);
+
+    alarms.items.forEach((alarm, index) => {
+        const item = document.createElement('li');
+
+        item.className = `glass flex items-center gap-4 p-4 ${alarm.enabled ? '' : 'opacity-55'}`;
+
+        const text = document.createElement('div');
+
+        text.className = 'min-w-0 flex-1';
+
+        const time = document.createElement('p');
+
+        time.className = 'heading text-2xl tabular-nums';
+        time.textContent = formatAlarmTime(alarm.time);
+
+        const label = document.createElement('p');
+
+        label.className = 'truncate text-xs font-bold text-slate-400 dark:text-slate-500';
+        label.textContent = [alarm.label || 'Alarm', alarm.repeat ? 'Every day' : 'Once'].join(' · ');
+
+        text.append(time, label);
+
+        const toggle = document.createElement('label');
+
+        toggle.className = 'relative inline-flex shrink-0 cursor-pointer';
+        toggle.innerHTML = '<span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors'
+            + ' peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>'
+            + '<span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md'
+            + ' transition-transform peer-checked:translate-x-5"></span>';
+
+        const checkbox = document.createElement('input');
+
+        checkbox.type = 'checkbox';
+        checkbox.className = 'peer sr-only';
+        checkbox.checked = alarm.enabled;
+        checkbox.dataset.alarmToggle = index;
+        checkbox.setAttribute('aria-label', `Enable ${alarm.label || 'alarm'}`);
+
+        toggle.prepend(checkbox);
+
+        const remove = document.createElement('button');
+
+        remove.type = 'button';
+        remove.dataset.alarmRemove = index;
+        remove.className = 'icon-btn icon-btn-danger !size-9 shrink-0';
+        remove.title = 'Delete alarm';
+        remove.innerHTML = '<i class="bi bi-trash3"></i>';
+
+        item.append(text, toggle, remove);
+        alarms.list.appendChild(item);
+    });
+}
+
+function showAlarmAlert(alarm) {
+    if (!alarms.alert) return;
+
+    alarms.alertText.textContent = `${formatAlarmTime(alarm.time)} · ${alarm.label || 'Alarm'}`;
+    alarms.alert.classList.remove('hidden');
+    alarms.alert.classList.add('flex');
+}
+
+function hideAlarmAlert() {
+    alarms.alert?.classList.add('hidden');
+    alarms.alert?.classList.remove('flex');
+}
+
+/** Ring every alarm whose minute has arrived and has not fired for it yet. */
+function alarmTick() {
+    const now = new Date();
+    const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const stamp = `${now.toDateString()} ${hhmm}`;
+    let changed = false;
+
+    alarms.items.forEach((alarm) => {
+        if (!alarm.enabled || alarm.time !== hhmm || alarm.lastFired === stamp) return;
+
+        alarm.lastFired = stamp;
+
+        if (!alarm.repeat) alarm.enabled = false;
+
+        changed = true;
+
+        showAlarmAlert(alarm);
+        beep(4);
+    });
+
+    if (changed) {
+        saveAlarms();
+        renderAlarms();
+    }
+}
+
+function bindAlarms() {
+    const form = document.getElementById('alarm-form');
+
+    bindOnce(form, 'submit', (event) => {
+        event.preventDefault();
+
+        const timeInput = document.getElementById('alarm-time');
+        const labelInput = document.getElementById('alarm-label');
+        const repeatInput = document.getElementById('alarm-repeat');
+
+        if (!timeInput.value) {
+            timeInput.reportValidity();
+
+            return;
+        }
+
+        alarms.items.push({
+            time: timeInput.value,
+            label: labelInput.value.trim(),
+            repeat: repeatInput.checked,
+            enabled: true,
+            lastFired: '',
+        });
+
+        alarms.items.sort((a, b) => a.time.localeCompare(b.time));
+
+        saveAlarms();
+        renderAlarms();
+
+        form.reset();
+    });
+
+    bindOnce(alarms.list, 'change', (event) => {
+        const toggle = event.target.closest('[data-alarm-toggle]');
+
+        if (!toggle) return;
+
+        const alarm = alarms.items[Number(toggle.dataset.alarmToggle)];
+
+        if (alarm) {
+            alarm.enabled = toggle.checked;
+            alarm.lastFired = '';
+
+            saveAlarms();
+            renderAlarms();
+        }
+    });
+
+    bindOnce(alarms.list, 'click', (event) => {
+        const button = event.target.closest('[data-alarm-remove]');
+
+        if (!button) return;
+
+        alarms.items.splice(Number(button.dataset.alarmRemove), 1);
+
+        saveAlarms();
+        renderAlarms();
+    });
+
+    bindOnce(document.getElementById('alarm-dismiss'), 'click', hideAlarmAlert);
+}
+
+/* ------------------------------------------------------------------ */
 /* Bootstrap                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -342,12 +558,21 @@ onReady(() => {
     stopwatch.display = document.getElementById('sw-display');
     stopwatch.lapsEl = document.getElementById('sw-laps');
 
+    alarms.list = document.getElementById('alarm-list');
+    alarms.empty = document.getElementById('alarm-empty');
+    alarms.alert = document.getElementById('alarm-alert');
+    alarms.alertText = document.getElementById('alarm-alert-text');
+    alarms.items = loadAlarms();
+    alarms.items.sort((a, b) => a.time.localeCompare(b.time));
+
     bindStopwatch();
     bindTimer();
+    bindAlarms();
 
     renderClock();
     renderStopwatch();
     renderTimer();
+    renderAlarms();
 
     if (!loopRunning) {
         loopRunning = true;
@@ -358,6 +583,7 @@ onReady(() => {
             if (clock.handSecond || clock.digitalTime) renderClock();
             stopWatchTick();
             timerTick();
+            alarmTick();
 
             if (document.querySelector('[data-zone-time]')) renderWorld();
         }, 50);

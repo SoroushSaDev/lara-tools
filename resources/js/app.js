@@ -9,12 +9,15 @@ import '@hotwired/turbo';
 // is not present, so the single entry point can be loaded everywhere.
 import './modules/theme';
 import './modules/toasts';
+import './modules/dropdown';
 import './modules/confirm';
 import './modules/tabs';
+import './modules/changelog';
 import './modules/music-player';
 import './modules/calculator';
 import './modules/calendar';
 import './modules/todo-items';
+import './modules/todo-editor';
 import './modules/weather-location';
 import './modules/clock';
 import './modules/converter';

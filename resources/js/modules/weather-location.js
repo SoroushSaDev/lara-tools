@@ -9,7 +9,9 @@ import { onReady } from '../support/ready';
 onReady(() => {
     const button = document.querySelector('[data-locate-url]');
 
-    if (!button) return;
+    if (!button || button.dataset.bound) return;
+
+    button.dataset.bound = '1';
 
     button.addEventListener('click', () => {
         if (!('geolocation' in navigator)) {

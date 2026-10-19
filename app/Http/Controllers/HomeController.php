@@ -22,7 +22,11 @@ class HomeController extends Controller
             'stats' => [
                 'notes' => Note::count(),
                 'todos' => Todo::count(),
-                'openItems' => collect(Todo::all())->sum(fn (Todo $todo) => $todo->progress()['total'] - $todo->progress()['completed']),
+                'openItems' => Todo::all()->sum(function (Todo $todo) {
+                    $progress = $todo->progress();
+
+                    return $progress['total'] - $progress['completed'];
+                }),
                 'events' => Event::whereDate('starts_at', '>=', today())->count(),
                 'tracks' => Music::count(),
             ],

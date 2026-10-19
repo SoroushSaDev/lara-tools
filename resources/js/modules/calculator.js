@@ -11,6 +11,7 @@
  *  - Live result: #calc-preview
  *  - Buttons:     [data-key="0".."9" | "." | "+" | "-" | "*" | "/" | "%" |
  *                  "clear" | "backspace" | "equals"]
+ *  - History:     #calc-history list fed by localStorage, #calc-history-clear
  */
 
 import { onReady } from '../support/ready';
@@ -23,6 +24,9 @@ const OPERATORS = {
     '%': { precedence: 2 },
 };
 
+const HISTORY_KEY = 'lara-tools.calc-history';
+const HISTORY_LIMIT = 30;
+
 const state = {
     expression: '',
     error: false,
@@ -31,6 +35,71 @@ const state = {
 let display = null;
 let preview = null;
 let keyboardBound = false;
+let history = [];
+let historyList = null;
+let historyEmpty = null;
+
+/** Read the persisted history, ignoring anything malformed. */
+function loadHistory() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+
+        return Array.isArray(stored)
+            ? stored.filter((entry) => typeof entry?.expression === 'string' && typeof entry?.result === 'string')
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHistory() {
+    try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+        // Storage unavailable (private mode / quota); history stays in memory.
+    }
+}
+
+function renderHistory() {
+    if (!historyList) return;
+
+    historyList.textContent = '';
+    historyEmpty?.classList.toggle('hidden', history.length > 0);
+
+    history.forEach((entry, index) => {
+        const button = document.createElement('button');
+
+        button.type = 'button';
+        button.dataset.historyIndex = index;
+        button.className = 'w-full cursor-pointer rounded-xl border border-slate-900/10 bg-white/50 px-3 py-2 text-right transition-colors hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/10';
+
+        const expression = document.createElement('span');
+
+        expression.className = 'block truncate text-xs font-bold text-slate-400 dark:text-slate-500';
+        expression.textContent = `${entry.expression} =`;
+
+        const result = document.createElement('span');
+
+        result.className = 'block truncate font-display text-lg font-semibold tabular-nums';
+        result.textContent = entry.result;
+
+        button.append(expression, result);
+
+        const item = document.createElement('li');
+
+        item.appendChild(button);
+        historyList.appendChild(item);
+    });
+}
+
+/** Record a finished calculation, keeping the newest entry first. */
+function remember(expression, result) {
+    history = [{ expression, result }, ...history.filter((entry) => entry.expression !== expression)]
+        .slice(0, HISTORY_LIMIT);
+
+    saveHistory();
+    renderHistory();
+}
 
 /** Split the raw expression into number and operator tokens. */
 function tokenize(input) {
@@ -143,7 +212,13 @@ function calculate(expression) {
 function render() {
     display.value = state.error ? 'Error' : state.expression || '0';
 
-    const result = state.error || state.expression === '' ? '' : calculate(state.expression);
+    if (state.error) {
+        preview.textContent = 'Invalid expression';
+
+        return;
+    }
+
+    const result = state.expression === '' ? '' : calculate(state.expression);
 
     preview.textContent = result !== null && result !== '' ? `= ${result}` : '';
 }
@@ -190,8 +265,8 @@ function equals() {
 
     if (result === null) {
         state.error = true;
-        preview.textContent = 'Invalid expression';
     } else {
+        remember(state.expression, result);
         state.expression = result;
     }
 
@@ -205,24 +280,56 @@ onReady(() => {
 
     display = document.getElementById('calc-expression');
     preview = document.getElementById('calc-preview');
+    historyList = document.getElementById('calc-history');
+    historyEmpty = document.getElementById('calc-history-empty');
+    history = loadHistory();
 
-    root.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-key]');
+    renderHistory();
 
-        if (!button) return;
+    // Turbo morphs keep the root node, so bind its handler only once.
+    if (!root.dataset.bound) {
+        root.dataset.bound = '1';
 
-        const key = button.dataset.key;
+        root.addEventListener('click', (event) => {
+            if (event.target.closest('#calc-history-clear')) {
+                history = [];
+                saveHistory();
+                renderHistory();
 
-        switch (key) {
-            case 'clear': clear(); break;
-            case 'backspace': backspace(); break;
-            case 'equals': equals(); break;
-            default: append(key);
-        }
+                return;
+            }
 
-        button.classList.add('scale-95');
-        setTimeout(() => button.classList.remove('scale-95'), 90);
-    });
+            const entry = event.target.closest('[data-history-index]');
+
+            if (entry) {
+                const record = history[Number(entry.dataset.historyIndex)];
+
+                if (record) {
+                    state.expression = record.result;
+                    state.error = false;
+                    render();
+                }
+
+                return;
+            }
+
+            const button = event.target.closest('[data-key]');
+
+            if (!button) return;
+
+            const key = button.dataset.key;
+
+            switch (key) {
+                case 'clear': clear(); break;
+                case 'backspace': backspace(); break;
+                case 'equals': equals(); break;
+                default: append(key);
+            }
+
+            button.classList.add('scale-95');
+            setTimeout(() => button.classList.remove('scale-95'), 90);
+        });
+    }
 
     // Keyboard support is bound once for the whole session; it only acts
     // while the calculator page is on screen.

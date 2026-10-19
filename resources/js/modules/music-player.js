@@ -133,7 +133,10 @@ function play(index) {
 
     audio.src = track.dataset.src;
     audio.load();
-    audio.play();
+
+    // play() may reject under browser autoplay policies; the pause icon
+    // already reflects reality in that case.
+    audio.play().catch(() => updatePlayIcon());
 
     renderTrackInfo(track);
 
@@ -263,6 +266,9 @@ function bindControls() {
         ui.volume.value = 100;
     }
 
+    audio.muted = audio.volume === 0;
+    ui.mute.querySelector('i').className = audio.muted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+
     ui.volume.addEventListener('input', () => {
         audio.volume = ui.volume.value / 100;
         audio.muted = audio.volume === 0;
@@ -286,6 +292,11 @@ function bindRows() {
     markActiveRow();
 
     state.tracks.forEach((row) => {
+        // Turbo morphs keep unchanged rows, so never bind a row twice.
+        if (row.dataset.bound) return;
+
+        row.dataset.bound = '1';
+
         row.addEventListener('click', (event) => {
             // Ignore clicks on nested controls such as the delete button.
             if (event.target.closest('form') || event.target.closest('button')) return;

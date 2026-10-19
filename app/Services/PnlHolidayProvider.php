@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\HolidayProvider;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +44,49 @@ class PnlHolidayProvider implements HolidayProvider
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function forBatch(array $dates): array
+    {
+        $holidays = [];
+        $pending = [];
+
+        foreach ($dates as [$year, $month, $day]) {
+            $key = "{$year}-{$month}-{$day}";
+            $cached = Cache::get("holidays:{$key}");
+
+            if ($cached !== null) {
+                $holidays[$key] = $cached;
+
+                continue;
+            }
+
+            $pending[$key] = [$year, $month, $day];
+        }
+
+        if ($pending !== []) {
+            $responses = Http::timeout(8)->pool(fn (Pool $pool) => collect($pending)
+                ->map(fn (array $date, string $key) => $pool->as($key)->get(self::ENDPOINT, [
+                    'year' => $date[0],
+                    'month' => $date[1],
+                    'day' => $date[2],
+                    'holiday' => 'false',
+                ]))
+                ->all());
+
+            foreach ($responses as $key => $response) {
+                $titles = $this->parse($response->json());
+
+                Cache::put("holidays:{$key}", $titles, self::CACHE_TTL);
+
+                $holidays[$key] = $titles;
+            }
+        }
+
+        return $holidays;
+    }
+
+    /**
      * Call the remote API, returning an empty list on any failure.
      *
      * @return array<int, string>
@@ -64,6 +108,16 @@ class PnlHolidayProvider implements HolidayProvider
             return [];
         }
 
+        return $this->parse($payload);
+    }
+
+    /**
+     * Normalise an API payload into a plain list of holiday titles.
+     *
+     * @return array<int, string>
+     */
+    protected function parse(mixed $payload): array
+    {
         if (! is_array($payload) || ($payload['status'] ?? false) !== true) {
             return [];
         }

@@ -22,6 +22,7 @@
          data-base-url="{{ route('calendar.index') }}"
          data-date="{{ $date->toDateString() }}"
          data-event-days='@json($eventDays)'
+         data-holiday-days="{{ json_encode($holidaysByDay, JSON_HEX_APOS | JSON_HEX_QUOT) }}"
          data-week-start="{{ $weekStart }}">
         {{-- Month navigation --}}
         <div class="glass mb-5 flex items-center justify-between gap-2 p-3 animate-fade-up">
@@ -30,21 +31,25 @@
             </button>
 
             <div class="flex flex-wrap items-center justify-center gap-2">
-                <select id="calendar-month"
-                        class="field-input !w-auto cursor-pointer appearance-none !py-2 text-center font-bold">
-                    @foreach (range(1, 12) as $month)
-                        <option value="{{ $month }}" @selected($month === $date->month)>
-                            {{ Carbon\Carbon::create()->month($month)->format('F') }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="dropdown relative min-w-[160px]">
+                    <select id="calendar-month" data-dropdown
+                            class="sr-only">
+                        @foreach (range(1, 12) as $month)
+                            <option value="{{ $month }}" @selected($month === $date->month)>
+                                {{ Carbon\Carbon::create()->month($month)->format('F') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                <select id="calendar-year"
-                        class="field-input !w-auto cursor-pointer appearance-none !py-2 text-center font-bold">
-                    @foreach (range(now()->year - 6, now()->year + 6) as $year)
-                        <option value="{{ $year }}" @selected($year === $date->year)>{{ $year }}</option>
-                    @endforeach
-                </select>
+                <div class="dropdown relative min-w-[120px]">
+                    <select id="calendar-year" data-dropdown
+                            class="sr-only">
+                        @foreach (range(now()->year - 6, now()->year + 6) as $year)
+                            <option value="{{ $year }}" @selected($year === $date->year)>{{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <button type="button" class="icon-btn" data-calendar-shift="1" title="Next month">
@@ -85,7 +90,7 @@
                         </div>
 
                         <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <a href="{{ route('calendar.edit', $event) }}" class="icon-btn size-8 !border-0 !bg-transparent" title="Edit event">
+                            <a href="{{ route('calendar.edit', $event) }}" class="icon-btn size-8 !border-0" title="Edit event">
                                 <i class="bi bi-pencil"></i>
                             </a>
 
@@ -93,7 +98,7 @@
                                 @csrf
                                 @method('DELETE')
 
-                                <button type="submit" data-confirm="Delete this event?" class="icon-btn size-8 !border-0 !bg-transparent hover:!text-rose-500" title="Delete event">
+                                <button type="submit" data-confirm="Delete this event?" class="icon-btn icon-btn-danger size-8 !border-0" title="Delete event">
                                     <i class="bi bi-trash3"></i>
                                 </button>
                             </form>

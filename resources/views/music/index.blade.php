@@ -12,9 +12,12 @@
                 <i class="bi bi-gear"></i>
             </a>
 
-            <a href="{{ route('music.pick') }}" class="btn-primary">
-                <i class="bi bi-plus-lg"></i><span class="hidden sm:inline">Add music</span>
-            </a>
+            <form method="POST" action="{{ route('music.pick') }}">
+                @csrf
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-plus-lg"></i><span class="hidden sm:inline">Add music</span>
+                </button>
+            </form>
         </x-slot:actions>
     </x-page-header>
 
@@ -26,9 +29,12 @@
                 <x-slot:description>Import audio files or whole folders from your disk.</x-slot:description>
 
                 <x-slot:action>
-                    <a href="{{ route('music.pick') }}" class="btn-primary mt-2">
-                        <i class="bi bi-plus-lg"></i>Add music
-                    </a>
+                    <form method="POST" action="{{ route('music.pick') }}" class="mt-2">
+                        @csrf
+                        <button type="submit" class="btn-primary">
+                            <i class="bi bi-plus-lg"></i>Add music
+                        </button>
+                    </form>
                 </x-slot:action>
             </x-empty-state>
         @endforelse

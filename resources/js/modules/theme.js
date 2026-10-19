@@ -6,6 +6,8 @@
  * The sidebar shows the current preference title next to its icon.
  */
 
+import { onReady } from '../support/ready';
+
 const STORAGE_KEY = 'lara-tools.theme';
 
 /** Resolve whether dark styling should currently be applied. */
@@ -25,32 +27,35 @@ function currentPref() {
 }
 
 /** Reflect the active preference in every sidebar/badge label. */
-function updateLabels() {
-    const pref = currentPref();
-
-    document.querySelectorAll('[data-theme-label]').forEach((label) => {
-        label.textContent = pref.charAt(0).toUpperCase() + pref.slice(1);
-    });
-}
-
 function applyTheme(pref) {
     document.documentElement.classList.toggle('dark', prefersDark(pref));
-    updateLabels();
 
     document.querySelectorAll('[data-theme-toggle] i')
         .forEach((icon) => icon.classList.toggle('bi-sun-fill', !prefersDark(pref)));
+}
+
+/** Sync the theme dropdown <select> with the current preference. */
+function syncDropdown() {
+    document.querySelectorAll('select[name="appearance"][data-dropdown]').forEach((select) => {
+        if (select.value !== currentPref()) {
+            select.value = currentPref();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
 }
 
 // Follow live OS changes while in "system" mode.
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if (currentPref() === 'system') {
         applyTheme('system');
+        syncDropdown();
     }
 });
 
 applyTheme(currentPref());
+syncDropdown();
 
-// Toggle button flips between light and dark explicitly.
+// Toggle button flips between light and dark explicitly (legacy support).
 document.addEventListener('click', (event) => {
     if (!event.target.closest('[data-theme-toggle]')) {
         return;
@@ -60,11 +65,15 @@ document.addEventListener('click', (event) => {
 
     localStorage.setItem(STORAGE_KEY, next);
     applyTheme(next);
+    syncDropdown();
 });
 
 // Keep the stored value in sync when settings are saved server-side.
 document.addEventListener('change', (event) => {
     if (event.target.name === 'appearance') {
         localStorage.setItem(STORAGE_KEY, event.target.value);
+        applyTheme(event.target.value);
     }
 });
+
+onReady(syncDropdown);

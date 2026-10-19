@@ -20,8 +20,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Bind interfaces to their concrete implementations so controllers
         // and models depend on abstractions rather than implementations.
-        $this->app->bind(SettingRepository::class, SettingService::class);
-        $this->app->bind(WeatherService::class, OpenWeatherService::class);
+        // Settings are read on almost every request, hence the singleton.
+        $this->app->singleton(SettingRepository::class, SettingService::class);
+        $this->app->singleton(WeatherService::class, OpenWeatherService::class);
         $this->app->singleton(HolidayProvider::class, PnlHolidayProvider::class);
     }
 

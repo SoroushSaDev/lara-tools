@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\SettingRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -49,6 +50,6 @@ class City extends Model
      */
     public function isHomeTown(): bool
     {
-        return app(\App\Services\SettingService::class)->get('home-town') === $this->name;
+        return app(SettingRepository::class)->get('home-town') === $this->name;
     }
 }

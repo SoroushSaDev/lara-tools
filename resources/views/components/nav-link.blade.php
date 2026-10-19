@@ -3,15 +3,18 @@
     'icon' => '',
     'label' => '',
     'compact' => false,
+    'exact' => false,
 ])
 
 @php
-    // Highlight when any route of the same feature is active (e.g. notes.create).
+    // Highlight when any route of the same feature is active (e.g. notes.create);
+    // single-page tools opt into an exact match with the `exact` prop.
     $base = str_contains($name, '.') ? str($name)->before('.') : $name;
-    $isActive = request()->routeIs($base) || request()->routeIs($base.'.*');
+    $isActive = $exact ? request()->routeIs($name) : (request()->routeIs($base) || request()->routeIs($base.'.*'));
 @endphp
 
 <a href="{{ route($name) }}"
+   @if ($isActive) aria-current="page" @endif
    {{ $attributes->class([
         'group relative flex flex-1 items-center gap-3 rounded-xl font-bold transition-all duration-200',
         'px-4 py-2.5 text-sm' => ! $compact,

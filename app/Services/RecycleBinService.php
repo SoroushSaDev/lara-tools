@@ -4,10 +4,10 @@ namespace App\Services;
 
 use App\Models\City;
 use App\Models\Event;
-use App\Models\Model;
 use App\Models\Music;
 use App\Models\Note;
 use App\Models\Todo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -127,6 +127,14 @@ class RecycleBinService
         }
 
         return $removed;
+    }
+
+    /**
+     * Whether the given bin type slug is supported.
+     */
+    public function handles(string $type): bool
+    {
+        return isset(self::TYPES[$type]);
     }
 
     /**

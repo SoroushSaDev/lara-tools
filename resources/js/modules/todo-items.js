@@ -5,47 +5,51 @@
  *  - Page root:  [data-todo-page]
  *  - Checkboxes: input[data-toggle-url] (one per checklist item)
  *  - Progress:   [data-progress-bar] (width %) and [data-progress-text]
+ *
+ * Listeners are attached at the document level (once) so Turbo's DOM
+ * morphing can never bind the same handler to a checkbox twice.
  */
 
 import { onReady } from '../support/ready';
 
+let progressState = { bar: null, text: null };
+
 onReady(() => {
     const page = document.querySelector('[data-todo-page]');
 
-    if (!page) return;
+    progressState = {
+        bar: page?.querySelector('[data-progress-bar]') ?? null,
+        text: page?.querySelector('[data-progress-text]') ?? null,
+    };
+});
 
-    const progressBar = page.querySelector('[data-progress-bar]');
-    const progressText = page.querySelector('[data-progress-text]');
+function setItemState(input, completed) {
+    const label = input.closest('.todo-item');
 
-    function updateProgress({ completed, total, percent }) {
-        if (progressBar) progressBar.style.width = `${percent}%`;
-        if (progressText) progressText.textContent = `${completed}/${total} done`;
+    if (!label) return;
+
+    input.checked = completed;
+
+    label.querySelector('[data-item-text]').classList.toggle('todo-item-done', completed);
+}
+
+document.addEventListener('change', async (event) => {
+    const input = event.target.closest('input[data-toggle-url]');
+
+    if (!input) return;
+
+    // Optimistically flip the UI; roll back if the request fails.
+    const nowCompleted = input.checked;
+
+    setItemState(input, nowCompleted);
+
+    try {
+        const response = await window.axios.patch(input.dataset.toggleUrl);
+        const { completed, total, percent } = response.data.progress;
+
+        if (progressState.bar) progressState.bar.style.width = `${percent}%`;
+        if (progressState.text) progressState.text.textContent = `${completed}/${total} done`;
+    } catch {
+        setItemState(input, !nowCompleted);
     }
-
-    function setItemState(input, completed) {
-        const label = input.closest('.todo-item');
-
-        if (!label) return;
-
-        input.checked = completed;
-
-        label.querySelector('[data-item-text]').classList.toggle('todo-item-done', completed);
-    }
-
-    document.querySelectorAll('input[data-toggle-url]').forEach((input) => {
-        input.addEventListener('change', async () => {
-            // Optimistically flip the UI; roll back if the request fails.
-            const nowCompleted = input.checked;
-
-            setItemState(input, nowCompleted);
-
-            try {
-                const response = await window.axios.patch(input.dataset.toggleUrl);
-
-                updateProgress(response.data.progress);
-            } catch {
-                setItemState(input, !nowCompleted);
-            }
-        });
-    });
 });

@@ -42,17 +42,39 @@ class CalendarController extends Controller
             ->get()
             ->groupBy(fn (Event $event) => (int) $event->starts_at->format('j'));
 
-        // Holidays are provided on the Jalali calendar, so convert first.
-        $jalali = \Morilog\Jalali\Jalalian::fromDateTime($date);
-        $holidays = $this->holidays->forDate($jalali->getYear(), $jalali->getMonth(), $jalali->getDay());
+        // Holidays are provided on the Jalali calendar. The whole visible
+        // month is fetched in one batch (cached per day) so every cell can
+        // show its marker, not just the selected one.
+        $holidaysEnabled = ($this->settings->get('calendar_show_holidays') ?? '1') === '1';
+        $holidaysByDay = [];
+
+        if ($holidaysEnabled) {
+            $jalaliKeysByDay = [];
+            $batch = [];
+
+            for ($cursor = $monthStart->copy(); $cursor->lessThanOrEqualTo($monthEnd); $cursor->addDay()) {
+                $jalali = \Morilog\Jalali\Jalalian::fromDateTime($cursor);
+                $key = "{$jalali->getYear()}-{$jalali->getMonth()}-{$jalali->getDay()}";
+
+                $jalaliKeysByDay[(int) $cursor->format('j')] = $key;
+                $batch[$key] = [$jalali->getYear(), $jalali->getMonth(), $jalali->getDay()];
+            }
+
+            $byKey = $this->holidays->forBatch(array_values($batch));
+
+            foreach ($jalaliKeysByDay as $day => $key) {
+                $holidaysByDay[$day] = $byKey[$key] ?? [];
+            }
+        }
 
         return view('calendar.index', [
             'date' => $date,
             'events' => $eventsByDay->get((int) $date->format('j'), collect()),
             'eventDays' => $eventsByDay->keys()->all(),
-            'holidays' => $holidays,
+            'holidays' => $holidaysByDay[(int) $date->format('j')] ?? [],
+            'holidaysByDay' => $holidaysByDay,
             'weekStart' => (int) ($this->settings->get('calendar_week_start') ?? 0),
-            'holidaysEnabled' => ($this->settings->get('calendar_show_holidays') ?? '1') === '1',
+            'holidaysEnabled' => $holidaysEnabled,
         ]);
     }
 

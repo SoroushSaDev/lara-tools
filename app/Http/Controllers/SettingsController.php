@@ -6,6 +6,7 @@ use App\Contracts\SettingRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -56,7 +57,7 @@ class SettingsController extends Controller
             'fields' => [
                 'calendar_week_start' => [
                     'type' => 'radio',
-                    'options' => ['0' => 'Sunday', '1' => 'Monday'],
+                    'options' => ['0' => 'Sunday', '1' => 'Monday', '6' => 'Saturday'],
                     'default' => '0',
                 ],
                 'calendar_show_holidays' => [
@@ -158,23 +159,28 @@ class SettingsController extends Controller
 
         $validated = $request->validate($rules);
 
-        foreach (self::TABS as $tab) {
-            foreach ($tab['fields'] as $key => $field) {
-                if ($field['type'] === 'switch') {
-                    // Switches are absent from the payload when unchecked;
-                    // persist them as explicit "off" either way.
-                    $this->settings->set($key, $request->boolean($key) ? '1' : '0');
+        DB::transaction(function () use ($request, $validated) {
+            foreach (self::TABS as $tab) {
+                foreach ($tab['fields'] as $key => $field) {
+                    if ($field['type'] === 'switch') {
+                        // The view pairs every checkbox with a hidden "0"
+                        // input, so a submitted tab always carries the key;
+                        // partial payloads never reset untouched switches.
+                        if ($request->has($key)) {
+                            $this->settings->set($key, $request->boolean($key) ? '1' : '0');
+                        }
 
-                    continue;
-                }
+                        continue;
+                    }
 
-                // Radio groups only persist when actually submitted, so
-                // partial payloads never reset untouched preferences.
-                if (array_key_exists($key, $validated)) {
-                    $this->settings->set($key, (string) $validated[$key]);
+                    // Radio groups only persist when actually submitted, so
+                    // partial payloads never reset untouched preferences.
+                    if (array_key_exists($key, $validated)) {
+                        $this->settings->set($key, (string) $validated[$key]);
+                    }
                 }
             }
-        }
+        });
 
         return back()->with('success', 'Settings saved.');
     }

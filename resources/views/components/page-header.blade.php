@@ -8,7 +8,7 @@
 <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-3 sm:mb-8">
     @if ($back)
         <a href="{{ $back }}" class="icon-btn" title="{{ $backLabel }}">
-            <i class="bi bi-arrow-left"></i>
+            <i class="bi bi-chevron-left"></i>
         </a>
     @endif
 

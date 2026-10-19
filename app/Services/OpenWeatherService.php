@@ -24,14 +24,19 @@ class OpenWeatherService implements WeatherServiceContract
     /**
      * Create a new service instance.
      *
-     * @param  SettingRepository  $settings  Provides the preferred measurement unit.
+     * All parameters fall back to configuration so the service is usable
+     * both through the container and when constructed manually in tests.
+     *
+     * @param  SettingRepository|null  $settings  Provides the preferred measurement unit.
      */
     public function __construct(
         protected ?string $apiKey = null,
-        protected string $baseUrl = 'https://api.openweathermap.org/data/2.5',
-        protected SettingRepository $settings = new \App\Services\SettingService,
+        protected ?string $baseUrl = null,
+        protected ?SettingRepository $settings = null,
     ) {
         $this->apiKey ??= config('services.openweather.key');
+        $this->baseUrl ??= config('services.openweather.base_url', 'https://api.openweathermap.org/data/2.5');
+        $this->settings ??= app(SettingRepository::class);
         $this->baseUrl = rtrim($this->baseUrl, '/');
     }
 
@@ -56,7 +61,8 @@ class OpenWeatherService implements WeatherServiceContract
      */
     protected function defaultUnits(): string
     {
-        return (string) ($this->settings->get('weather_units') ?? config('services.openweather.units', 'metric'));
+        return (string) ($this->settings->get('weather_units')
+            ?? config('services.openweather.units', 'metric'));
     }
 
     /**

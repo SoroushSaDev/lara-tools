@@ -15,23 +15,25 @@
         <x-slot:subtitle>Pick a tool to tune its behaviour</x-slot:subtitle>
     </x-page-header>
 
-    <form method="POST" action="{{ route('settings.update') }}" data-tabs class="flex flex-col gap-5">
+    <form method="POST" action="{{ route('settings.update') }}" data-tabs
+          class="flex flex-col gap-5 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-6">
         @csrf
         @method('PUT')
 
-        {{-- Tab strip --}}
-        <div class="glass flex flex-wrap items-center gap-2 p-2 animate-fade-up">
+        {{-- Tab rail: horizontal strip on small screens, vertical column on large --}}
+        <nav class="glass flex h-fit flex-wrap items-center gap-2 p-2 animate-fade-up lg:flex-col lg:items-stretch lg:gap-1.5 lg:p-2.5">
             @foreach ($tabs as $tab)
                 <button type="button" data-tab="{{ $tab['key'] }}"
-                        class="tab-pill {{ $tab['key'] === $activeTab ? 'is-active' : '' }}">
+                        class="tab-pill lg:w-full {{ $tab['key'] === $activeTab ? 'is-active' : '' }}">
                     <i class="bi {{ $tab['icon'] }}"></i>{{ $tab['label'] }}
                 </button>
             @endforeach
-        </div>
+        </nav>
 
-        {{-- Panels --}}
-        @foreach ($tabs as $tab)
-            <section data-tab-panel="{{ $tab['key'] }}" class="glass p-6 animate-fade-up" @if ($tab['key'] !== $activeTab) hidden @endif>
+        {{-- Panels: one tool at a time, beside the rail on large screens --}}
+        <div class="min-w-0">
+            @foreach ($tabs as $tab)
+                <section data-tab-panel="{{ $tab['key'] }}" class="glass p-6 animate-fade-up" @if ($tab['key'] !== $activeTab) hidden @endif>
                 <h2 class="heading mb-5 flex items-center gap-2 text-lg">
                     <i class="bi {{ $tab['icon'] }} text-violet-500 dark:text-fuchsia-400"></i>{{ $tab['label'] }}
                 </h2>
@@ -43,6 +45,7 @@
                                 <span class="text-sm font-bold capitalize">{{ str($field['key'])->replace('_', ' ') }}</span>
 
                                 <span class="relative inline-flex">
+                                    <input type="hidden" name="{{ $field['key'] }}" value="0"/>
                                     <input type="checkbox" name="{{ $field['key'] }}" value="1"
                                            class="peer sr-only" @checked($field['current'] === '1')/>
 
@@ -57,7 +60,7 @@
                                 @foreach ($field['options'] as $value => $option)
                                     <label class="cursor-pointer">
                                         <input type="radio" name="{{ $field['key'] }}" value="{{ $value }}"
-                                               class="peer sr-only" @checked($field['current'] === $value)/>
+                                               class="peer sr-only" @checked($field['current'] == $value)/>
 
                                         <span class="block rounded-xl border-2 border-slate-900/10 bg-white/50 px-4 py-2.5 text-center text-sm font-bold transition-all
                                             peer-checked:border-violet-500 peer-checked:bg-violet-500/10 peer-checked:text-violet-700 hover:bg-white
@@ -76,9 +79,10 @@
                 @endforelse
             </section>
         @endforeach
+        </div>
 
         {{-- Save bar --}}
-        <div class="sticky bottom-24 z-20 flex justify-end lg:bottom-8 animate-fade-up">
+        <div class="sticky bottom-24 z-20 flex justify-end lg:col-span-2 lg:bottom-8 animate-fade-up">
             <button type="submit" class="btn-primary px-8 shadow-xl">
                 <i class="bi bi-check-lg"></i>Save changes
             </button>

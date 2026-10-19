@@ -7,8 +7,8 @@
  * can re-fetch holidays and events for the new range.
  *
  * Contract with the Blade view:
- *  - Root:        #calendar-root[data-date="YYYY-MM-DD"][data-event-days='[...]']
- *                 [data-week-start="0|1"]
+ *  - Root:        #calendar-root[data-date="YYYY-MM-DD"][data-event-days='[...]'
+ *                 [data-holiday-days='{"day":["title",...]}"][data-week-start="0|1"]
  *  - Grid:        #calendar-grid (weekday headers rendered here too)
  */
 
@@ -20,9 +20,12 @@ let selected = null;
 let grid = null;
 let baseUrl = '/calendar';
 let weekStart = 0;
+let holidayMap = {};
 
 function navigate(date) {
-    window.location.href = `${baseUrl}?date=${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    const pad = (n) => String(n).padStart(2, '0');
+
+    window.location.href = `${baseUrl}?date=${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function isSameDay(a, b) {
@@ -42,7 +45,7 @@ function buildCell(day, month, year, options = {}) {
     cell.type = 'button';
     cell.textContent = day > 0 ? day : '';
     cell.className = [
-        'relative flex aspect-square items-center justify-center rounded-xl text-sm font-bold transition-all duration-200 sm:text-base',
+        'relative flex h-11 items-center justify-center rounded-xl text-sm font-bold transition-all duration-200 sm:h-12 sm:text-base',
         'cursor-pointer select-none',
         'hover:scale-105 hover:bg-violet-500/20 active:scale-95',
         day > 0 ? '' : 'pointer-events-none',
@@ -72,10 +75,22 @@ function buildCell(day, month, year, options = {}) {
     if ((options.eventDays ?? []).includes(day)) {
         const dot = document.createElement('span');
 
-        dot.className = 'absolute bottom-1.5 size-1.5 rounded-full bg-fuchsia-500'
-            + (options.isSelected ? ' bg-white' : '');
+        dot.className = 'absolute bottom-1.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full '
+            + (options.isSelected ? 'bg-white' : 'bg-fuchsia-500');
 
         cell.appendChild(dot);
+    }
+
+    const holidays = options.holidays ?? [];
+
+    if (holidays.length > 0) {
+        const dot = document.createElement('span');
+
+        dot.className = 'absolute bottom-1.5 right-1.5 size-1.5 rounded-full '
+            + (options.isSelected ? 'bg-white/90' : 'bg-sky-400');
+
+        cell.appendChild(dot);
+        cell.title = holidays.join('\n');
     }
 
     cell.addEventListener('click', () => navigate(date));
@@ -90,7 +105,7 @@ function render(year, month, eventDays) {
     WEEKDAYS.forEach((label, index) => {
         const header = document.createElement('div');
 
-        header.textContent = WEEKDAYS[weekdayIndex(index)];
+        header.textContent = WEEKDAYS[(weekStart + index) % 7];
         header.className = 'text-center text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500';
         grid.appendChild(header);
     });
@@ -107,6 +122,7 @@ function render(year, month, eventDays) {
         grid.appendChild(buildCell(day, month - 1, year, {
             isSelected: isSameDay(new Date(year, month - 1, day), selected),
             eventDays,
+            holidays: holidayMap[day] ?? [],
         }));
     }
 }
@@ -128,6 +144,12 @@ onReady(() => {
 
     const eventDays = JSON.parse(root.dataset.eventDays || '[]');
 
+    try {
+        holidayMap = JSON.parse(root.dataset.holidayDays || '{}');
+    } catch {
+        holidayMap = {};
+    }
+
     render(selected.getFullYear(), selected.getMonth() + 1, eventDays);
 
     // Month/year selects and neighbour buttons navigate to reload events.
@@ -138,14 +160,32 @@ onReady(() => {
         navigate(new Date(Number(yearSelect.value), Number(monthSelect.value) - 1, Math.min(selected.getDate(), 28)));
     };
 
-    monthSelect?.addEventListener('change', navigateToSelection);
-    yearSelect?.addEventListener('change', navigateToSelection);
+    // Turbo morphs keep unchanged nodes, so guard against binding twice.
+    if (monthSelect && !monthSelect.dataset.bound) {
+        monthSelect.dataset.bound = '1';
+        monthSelect.addEventListener('change', navigateToSelection);
+    }
+
+    if (yearSelect && !yearSelect.dataset.bound) {
+        yearSelect.dataset.bound = '1';
+        yearSelect.addEventListener('change', navigateToSelection);
+    }
 
     document.querySelectorAll('[data-calendar-shift]').forEach((button) => {
+        if (button.dataset.bound) return;
+
+        button.dataset.bound = '1';
+
         button.addEventListener('click', () => {
             const shift = Number(button.dataset.calendarShift);
+            const target = new Date(selected.getFullYear(), selected.getMonth() + shift, 1);
 
-            navigate(new Date(selected.getFullYear(), selected.getMonth() + shift, selected.getDate()));
+            // Clamp the day so e.g. Mar 31 shifts to Apr 30, never May 1.
+            const daysInTarget = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+
+            target.setDate(Math.min(selected.getDate(), daysInTarget));
+
+            navigate(target);
         });
     });
 });

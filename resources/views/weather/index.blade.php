@@ -64,10 +64,10 @@
     @endif
 
     @if ($weather && isset($weather['main']))
-        <div class="mx-auto flex max-w-lg flex-col items-center gap-6 text-center">
+        <div class="grid max-w-4xl gap-6 lg:grid-cols-2 lg:items-center">
             {{-- Condition hero --}}
-            <div class="flex flex-col items-center gap-2 animate-fade-up">
-                <div class="relative">
+            <div class="flex flex-col items-center gap-2 text-center animate-fade-up lg:items-start lg:text-left">
+                <div class="relative mx-auto lg:mx-0">
                     <i class="bi {{ weatherIcon($weather['weather'][0]['main'] ?? null) }} bg-gradient-to-br from-sky-400 to-blue-600 bg-clip-text text-[7rem] leading-none text-transparent drop-shadow-lg sm:text-[9rem]"></i>
                     <span class="absolute inset-0 -z-10 mx-auto mt-6 size-24 rounded-full bg-sky-400/25 blur-2xl"></span>
                 </div>
@@ -92,7 +92,7 @@
             </div>
 
             {{-- Detail grid --}}
-            <dl class="glass grid w-full grid-cols-2 gap-x-6 gap-y-5 p-6 text-left animate-fade-up sm:grid-cols-3" style="animation-delay: 80ms">
+            <dl class="glass grid w-full grid-cols-2 gap-x-6 gap-y-5 p-6 text-left animate-fade-up" style="animation-delay: 80ms">
                 @include('weather.partial.property', ['label' => 'Feels like', 'value' => round($weather['main']['feels_like']).$unitSymbol, 'icon' => 'bi-thermometer-half'])
                 @include('weather.partial.property', ['label' => 'Humidity', 'value' => $weather['main']['humidity'].'%', 'icon' => 'bi-droplet-half'])
                 @include('weather.partial.property', ['label' => 'Pressure', 'value' => $weather['main']['pressure'].' hPa', 'icon' => 'bi-speedometer'])
