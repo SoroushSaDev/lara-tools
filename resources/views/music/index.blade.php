@@ -5,7 +5,7 @@
 @section('content')
     <x-page-header back="{{ route('home') }}" back-label="Home">
         <x-slot:title>Music Player</x-slot:title>
-        <x-slot:subtitle>{{ $musicFiles->count() }} {{ str('track')->plural($musicFiles->count()) }} · playback keeps running while you browse</x-slot:subtitle>
+        <x-slot:subtitle>{{ $total }} {{ str('track')->plural($total) }} · playback keeps running while you browse</x-slot:subtitle>
 
         <x-slot:actions>
             <a href="{{ route('settings', ['tab' => 'music']) }}" class="icon-btn" title="Music settings">
@@ -21,28 +21,14 @@
                 </button>
             </form>
         </x-slot:actions>
+
+        <x-slot:toolbar>
+            <x-search-box :action="route('music.index')" frame="music-results" :value="$query"
+                          class="max-w-md" placeholder="Search titles, artists, albums and genres…" label="Search music"/>
+        </x-slot:toolbar>
     </x-page-header>
 
-    <div class="grid grid-cols-1 gap-3 pb-24 xl:gap-4">
-        @forelse ($musicFiles as $key => $music)
-            @include('music.partial.track', ['track' => $music, 'index' => $key])
-        @empty
-            <x-empty-state icon="bi-music-note-list" title="Your library is empty">
-                <x-slot:description>Import audio files or whole folders from your disk.</x-slot:description>
-
-                <x-slot:action>
-                    <form method="POST" action="{{ route('music.pick') }}" class="mt-2" data-turbo-prefetch="false">
-                        @csrf
-                        <input type="hidden" name="intent" value="pick"/>
-
-                        <button type="submit" class="btn-primary">
-                            <i class="bi bi-plus-lg"></i>Add music
-                        </button>
-                    </form>
-                </x-slot:action>
-            </x-empty-state>
-        @endforelse
-    </div>
+    @include('music.partial.results')
 
     {{-- Spacer so the persistent full deck never covers the last row --}}
     <div class="h-28 lg:h-32"></div>

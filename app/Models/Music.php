@@ -41,6 +41,23 @@ class Music extends Model
     }
 
     /**
+     * Values the search boxes look through.
+     *
+     * @return array<int, string|int|null>
+     */
+    public function searchFields(): array
+    {
+        return [
+            $this->displayTitle(),
+            $this->artist,
+            $this->album,
+            $this->genre,
+            $this->name,
+            $this->year,
+        ];
+    }
+
+    /**
      * Whether the stored file's own tag block can be rewritten.
      *
      * Only MP3 is handled: getID3 writes Vorbis/FLAC comments by shelling out

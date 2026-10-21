@@ -256,6 +256,14 @@
         @apply mt-1.5 block text-xs font-bold text-rose-500;
     }
 
+    /* Chromium draws its own reset glyph inside type=search boxes; the search
+       box component ships a clear button that JS can see instead. */
+    input[type='search']::-webkit-search-cancel-button,
+    input[type='search']::-webkit-search-decoration {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
     /* ---- Misc ---------------------------------------------------------- */
     .chip {
         @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold;
@@ -281,13 +289,14 @@
 
     /* ---- Global player --------------------------------------------------
        Mini pill everywhere; expands to the full deck on the Music page
-       (body gets .on-music-page from the layout). */
+       (body gets .on-music-page from the layout). Mobile spans inset-x-3 in
+       both modes; 5.5rem lifts the card clear of the 82px bottom nav. */
     #player .player-full {
         display: none;
     }
 
     .on-music-page #player {
-        @apply inset-x-3 bottom-[4.6rem] rounded-2xl lg:inset-x-auto lg:left-[19.5rem] lg:right-6 lg:bottom-5;
+        @apply inset-x-3 bottom-[5.5rem] rounded-2xl lg:inset-x-auto lg:left-[19.5rem] lg:right-6 lg:bottom-5;
     }
 
     .on-music-page #player .player-mini {
@@ -306,6 +315,41 @@
 
     .tab-pill.is-active {
         @apply bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-600/30;
+    }
+
+    /* ---- Day-of-week chips (alarm creator) ------------------------------ */
+    .day-chip {
+        @apply grid size-11 cursor-pointer place-items-center rounded-xl border border-slate-900/10
+            bg-white/70 text-xs font-bold text-slate-500 transition-all duration-200 select-none
+            hover:border-violet-500/40
+            dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-400;
+    }
+
+    .day-chip.is-on {
+        @apply border-transparent bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-md shadow-violet-600/30;
+    }
+
+    /* The 'Every day' master toggle carries a word, so it grows wider. */
+    .day-chip-wide {
+        @apply w-auto min-w-24 px-3;
+    }
+
+    /* ---- Time-of-day picker (x-time-picker) ----------------------------- */
+    /* Each part is a two-digit number, so its dropdown trigger shrinks to fit
+       and the three read as one clock. The leading ! are required: the trigger
+       carries its own w-full / min-w utilities, and utilities outrank this
+       layer. */
+    .time-picker .dropdown-trigger {
+        @apply !w-16 !min-w-0 justify-center gap-1 px-1.5 text-lg font-semibold tabular-nums;
+    }
+
+    .time-picker .dropdown-label {
+        @apply !flex-none !text-center;
+    }
+
+    /* AM/PM carries letters, so that part gets the room. */
+    .time-picker .time-picker-meridiem .dropdown-trigger {
+        @apply !w-20 text-sm;
     }
 
     /* ---- Analog clock --------------------------------------------------- */

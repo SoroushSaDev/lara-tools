@@ -57,6 +57,22 @@ class Todo extends Model
     }
 
     /**
+     * Values the search boxes look through.
+     *
+     * Item text comes from the decoded list, because the stored JSON escapes
+     * everything outside ASCII and Persian entries would never match.
+     *
+     * @return array<int, string|null>
+     */
+    public function searchFields(): array
+    {
+        return array_merge(
+            [$this->title, $this->description],
+            array_column($this->items(), 'text'),
+        );
+    }
+
+    /**
      * Whether the list carries a real priority ('none' and unmigrated rows do not).
      */
     public function hasPriority(): bool

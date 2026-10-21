@@ -29,4 +29,9 @@
             {{ $actions }}
         @endisset
     </div>
+
+    {{-- Full-width row under the heading, for page tools such as search --}}
+    @isset($toolbar)
+        <div class="basis-full">{{ $toolbar }}</div>
+    @endisset
 </div>

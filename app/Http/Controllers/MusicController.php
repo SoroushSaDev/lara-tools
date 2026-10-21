@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Music;
 use App\Services\MusicLibraryService;
+use App\Support\Search;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,13 +25,24 @@ class MusicController extends Controller
     ) {}
 
     /**
-     * Display the music library.
+     * Display the music library, narrowed by the search term when present.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('music.index', [
-            'musicFiles' => Music::latest()->get(),
-        ]);
+        $term = Search::term($request->query('q'));
+
+        $tracks = Music::latest()->get();
+
+        $data = [
+            'musicFiles' => Search::filter($tracks, $term),
+            'total' => $tracks->count(),
+            'term' => $term,
+            'query' => $request->query('q'),
+        ];
+
+        return $request->header('Turbo-Frame') === 'music-results'
+            ? view('music.partial.results', $data)
+            : view('music.index', $data);
     }
 
     /**

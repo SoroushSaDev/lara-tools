@@ -7,6 +7,14 @@
         <span class="heading text-2xl">Lara<span class="text-gradient">Tools</span></span>
     </a>
 
+    {{-- Opens the global search overlay; Ctrl/Cmd+K does the same (modules/search.js) --}}
+    <button type="button" data-search-open
+            class="mb-6 flex items-center gap-2.5 rounded-xl border border-slate-900/10 bg-white/60 px-3.5 py-2.5 text-sm font-bold text-slate-500 transition-colors hover:border-violet-500/40 hover:text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:border-fuchsia-400/40 dark:hover:text-slate-200">
+        <i class="bi bi-search"></i>
+        <span>Search…</span>
+        <kbd class="ms-auto rounded-md border border-slate-900/10 bg-white/70 px-1.5 py-0.5 font-sans text-[10px] dark:border-white/10 dark:bg-white/10">Ctrl K</kbd>
+    </button>
+
     <nav class="flex flex-col gap-1.5">
         <x-nav-link name="home" icon="bi-grid-1x2-fill" label="Dashboard" exact/>
         <x-nav-link name="notes.index" icon="bi-journal-text" label="Notes"/>

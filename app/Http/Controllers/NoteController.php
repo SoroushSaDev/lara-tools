@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Contracts\SettingRepository;
 use App\Http\Requests\NoteRequest;
 use App\Models\Note;
+use App\Support\Search;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 /**
  * Full CRUD for sticky notes.
@@ -20,10 +22,13 @@ class NoteController extends Controller
     ) {}
 
     /**
-     * Display a listing of the notes, honouring the sort preference.
+     * Display a listing of the notes, honouring the sort preference and
+     * narrowing them when a search term is present.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $term = Search::term($request->query('q'));
+
         $query = Note::query();
 
         $notes = match ($this->settings->get('notes_sort', 'newest')) {
@@ -32,10 +37,19 @@ class NoteController extends Controller
             default => $query->latest()->get(),
         };
 
-        return view('notes.index', [
-            'notes' => $notes,
+        $data = [
+            'notes' => Search::filter($notes, $term),
+            'total' => $notes->count(),
+            'term' => $term,
+            'query' => $request->query('q'),
             'excerptLength' => (int) $this->settings->get('notes_excerpt_length', 160),
-        ]);
+        ];
+
+        // A frame reload must return only the frame: the search input lives
+        // outside it, which is what keeps focus while the term changes.
+        return $request->header('Turbo-Frame') === 'notes-results'
+            ? view('notes.partial.results', $data)
+            : view('notes.index', $data);
     }
 
     /**

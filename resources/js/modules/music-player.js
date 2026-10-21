@@ -12,7 +12,9 @@
  * Single-instance elements keep ids: #player-progress/-current-time/
  * -total-time/-volume/-mute.
  *
- * Library rows (.track): data-index|src|ok|title|artist|cover|duration.
+ * Library rows (.track): data-src|ok|title|artist|cover|duration. A row is
+ * the current one when its data-src matches the loaded track, which keeps the
+ * highlight correct while the library search filters the list.
  * Body dataset: data-music-shuffle-default="0|1" (from settings).
  *
  * Progress/volume are <x-slider> components (modules/slider.js): the ids
@@ -29,6 +31,9 @@ const VOLUME_KEY = 'lara-tools.volume';
 const state = {
     tracks: [],
     current: -1,
+    // Position is only meaningful inside the rows currently rendered, so the
+    // playing track is remembered by its file URL instead.
+    currentSrc: null,
     shuffle: false,
     repeat: 'off', // off | all | one
     seeking: false,
@@ -78,7 +83,7 @@ function showToast(message) {
 
 function markActiveRow() {
     document.querySelectorAll('.track').forEach((row) => {
-        row.classList.toggle('is-active', Number(row.dataset.index) === state.current);
+        row.classList.toggle('is-active', row.dataset.src === state.currentSrc);
     });
 }
 
@@ -132,9 +137,8 @@ function play(index) {
     if (state.tracks.length === 0) return;
 
     // Wrap around the playlist in both directions.
-    state.current = ((index % state.tracks.length) + state.tracks.length) % state.tracks.length;
-
-    const track = state.tracks[state.current];
+    const target = ((index % state.tracks.length) + state.tracks.length) % state.tracks.length;
+    const track = state.tracks[target];
 
     // Refuse to play rows whose underlying file has vanished.
     if (track.dataset.ok === '0') {
@@ -142,6 +146,9 @@ function play(index) {
 
         return;
     }
+
+    state.current = target;
+    state.currentSrc = track.dataset.src;
 
     audio.src = track.dataset.src;
     audio.load();
@@ -310,9 +317,13 @@ function bindControls() {
     controlsBound = true;
 }
 
-/** Re-bind library rows after each visit; refresh active highlighting. */
+/** Re-collect library rows after a visit or a filtered frame reload. */
 function bindRows() {
     state.tracks = [...document.querySelectorAll('.track')];
+
+    // The playing track may have been filtered out of the list; position then
+    // no longer exists, and transport controls fall back to the visible rows.
+    state.current = state.tracks.findIndex((row) => row.dataset.src === state.currentSrc);
 
     markActiveRow();
 
@@ -326,18 +337,28 @@ function bindRows() {
             // Nested controls (delete form, details link) act on their own.
             if (event.target.closest('form, button, a')) return;
 
-            const index = Number(row.dataset.index);
+            if (row.dataset.src === state.currentSrc) {
+                if (audio.paused) {
+                    audio.play();
+                } else {
+                    audio.pause();
+                }
 
-            if (index === state.current && !audio.paused) {
-                audio.pause();
-            } else if (index === state.current) {
-                audio.play();
-            } else {
-                play(index);
+                return;
             }
+
+            // Look the position up now: a kept row may have shifted in the list.
+            play(state.tracks.indexOf(row));
         });
     });
 }
+
+// Typing in the library box re-renders the rows without a page visit.
+document.addEventListener('turbo:frame-load', (event) => {
+    if (event.target?.id === 'music-results' && audio) {
+        bindRows();
+    }
+});
 
 onReady(() => {
     const playerEl = document.getElementById('player');
@@ -378,8 +399,7 @@ onReady(() => {
     bindRows();
 
     // Returning to the library mid-song: reflect the running state.
-    if (state.current >= 0) {
-        markActiveRow();
+    if (state.currentSrc !== null) {
         showPlayer();
         updatePlayIcon();
     }

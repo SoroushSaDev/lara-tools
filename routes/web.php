@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MusicController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\RecycleBinController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\WeatherController;
@@ -25,6 +26,9 @@ use Illuminate\Support\Facades\Route;
 
 // Dashboard.
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// One term across notes, todo lists and the music library.
+Route::get('/search', [SearchController::class, 'index'])->name('search');
 
 // Notes (full resource).
 Route::resource('notes', NoteController::class);

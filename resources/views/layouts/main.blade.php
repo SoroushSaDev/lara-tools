@@ -53,6 +53,11 @@
     <!-- Mobile bottom navigation -->
     @include('layouts.partial.bottom-nav')
 
+    {{-- Global search overlay. Skipped on /search, which renders that frame itself. --}}
+    @unless (request()->routeIs('search'))
+        @include('layouts.partial.search-overlay')
+    @endunless
+
     <!-- Persistent music player (mini everywhere, full deck on Music) -->
     @include('layouts.partial.player')
 

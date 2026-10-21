@@ -1,6 +1,10 @@
 {{-- One library row; doubles as a play button and carries track metadata --}}
-<div class="track glass glass-hover group flex cursor-pointer items-center gap-3.5 p-3 animate-fade-up sm:p-4"
-     data-index="{{ $index }}"
+<div @class([
+    'track glass glass-hover group flex cursor-pointer items-center gap-3.5 p-3 sm:p-4',
+    // Rows rendered by a search reload appear in place, so they skip the
+    // staggered entrance that a first visit uses.
+    'animate-fade-up' => ! ($instant ?? false),
+])
      data-src="{{ $track->streamUrl() }}"
      data-ok="{{ $track->audioExists() ? '1' : '0' }}"
      data-title="{{ $track->displayTitle() }}"

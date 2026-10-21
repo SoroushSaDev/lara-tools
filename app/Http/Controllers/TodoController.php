@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Contracts\SettingRepository;
 use App\Http\Requests\TodoRequest;
 use App\Models\Todo;
+use App\Support\Search;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Full CRUD for checklists, including toggling individual items.
@@ -22,10 +24,13 @@ class TodoController extends Controller
     ) {}
 
     /**
-     * Display the todo lists in the order the user asked for.
+     * Display the todo lists in the order the user asked for, narrowed by
+     * the search term when one is present.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $term = Search::term($request->query('q'));
+
         $query = Todo::query();
 
         // Undated lists sink to the bottom; `due_at is null` keeps NULLs last
@@ -56,7 +61,17 @@ class TodoController extends Controller
             $todos = $visible;
         }
 
-        return view('todos.index', compact('todos', 'hidden'));
+        $data = [
+            'todos' => Search::filter($todos, $term),
+            'total' => $todos->count(),
+            'hidden' => $hidden,
+            'term' => $term,
+            'query' => $request->query('q'),
+        ];
+
+        return $request->header('Turbo-Frame') === 'todos-results'
+            ? view('todos.partial.results', $data)
+            : view('todos.index', $data);
     }
 
     /**
