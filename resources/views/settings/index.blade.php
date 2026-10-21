@@ -63,15 +63,46 @@
                                     <label class="flex h-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-900/10 bg-white/50 p-4 transition hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/10">
                                         <span class="text-sm font-bold">{{ $field['label'] ?? str($field['key'])->replace('_', ' ') }}</span>
 
-                                        <span class="relative inline-flex shrink-0">
-                                            <input type="hidden" name="{{ $field['key'] }}" value="0"/>
-                                            <input type="checkbox" name="{{ $field['key'] }}" value="1"
-                                                   class="peer sr-only" @checked($field['current'] === '1')/>
-
-                                            <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
-                                            <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
-                                        </span>
+                                        <x-settings-toggle :name="$field['key']" :checked="$field['current'] === '1'"/>
                                     </label>
+                                @elseif ($field['type'] === 'order')
+                                    {{-- Inline @php only: a block here would swallow the @php() above. --}}
+                                    @php($ordered = App\Support\DashboardOrder::decode($field['current'], array_keys($field['items'])))
+                                    @php($prefix = $field['toggle_prefix'] ?? null)
+
+                                    <div data-reorder>
+                                        <p class="mb-2.5 text-sm font-bold">{{ $field['label'] }}</p>
+
+                                        {{-- reorder.js rewrites this on every drag or arrow press. --}}
+                                        <input type="hidden" name="{{ $field['key'] }}" value="{{ json_encode($ordered) }}" data-reorder-value/>
+
+                                        <ul class="drag-list">
+                                            @foreach ($ordered as $item)
+                                                <li class="drag-row" data-key="{{ $item }}" draggable="true">
+                                                    <span class="drag-handle" title="Drag to reorder">
+                                                        <i class="bi bi-grip-vertical"></i>
+                                                    </span>
+
+                                                    <span class="min-w-0 flex-1 truncate text-sm font-bold">{{ $field['items'][$item] }}</span>
+
+                                                    @if ($prefix)
+                                                        <x-settings-toggle :name="$prefix.$item" :checked="$tab['fields'][$prefix.$item]['current'] === '1'"/>
+                                                    @endif
+
+                                                    <span class="flex shrink-0 gap-1.5">
+                                                        <button type="button" data-move="up" class="icon-btn size-8"
+                                                                aria-label="Move {{ $field['items'][$item] }} up" title="Move up">
+                                                            <i class="bi bi-arrow-up text-xs"></i>
+                                                        </button>
+                                                        <button type="button" data-move="down" class="icon-btn size-8"
+                                                                aria-label="Move {{ $field['items'][$item] }} down" title="Move down">
+                                                            <i class="bi bi-arrow-down text-xs"></i>
+                                                        </button>
+                                                    </span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
                                 @else
                                     <p class="mb-2.5 text-sm font-bold capitalize">{{ $field['label'] ?? str($field['key'])->remove(['_format', '_start', '_precision'])->replace('_', ' ') }}</p>
 

@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Music;
 use App\Services\MusicLibraryService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Native\Laravel\Dialog;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -134,51 +134,100 @@ class MusicController extends Controller
     }
 
     /**
-     * Replace a track's tag list and return the normalised result as JSON.
+     * Show the metadata editor for one track.
      */
-    public function updateTags(Request $request, Music $music): JsonResponse
+    public function edit(Music $music): View
     {
-        $validated = $request->validate([
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:40'],
-        ]);
-
-        $music->tags = $this->normaliseTags($validated['tags'] ?? []);
-        $music->save();
-
-        return response()->json([
-            'tags' => $music->tagList(),
-        ]);
+        return view('music.edit', ['track' => $music]);
     }
 
     /**
-     * Trim, drop empties, dedupe case-insensitively (first spelling wins)
-     * and cap the list.
-     *
-     * @param  array<int, mixed>  $tags
-     * @return list<string>
+     * Save editable metadata, writing it into the audio file when the format
+     * can carry it.
      */
-    protected function normaliseTags(array $tags): array
+    public function update(Request $request, Music $music): RedirectResponse
     {
-        $result = [];
-        $seen = [];
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'artist' => ['nullable', 'string', 'max:255'],
+            'album' => ['nullable', 'string', 'max:255'],
+            'genre' => ['nullable', 'string', 'max:255'],
+            'year' => ['nullable', 'integer', 'between:0,9999'],
+            'track_number' => ['nullable', 'integer', 'between:0,999'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'remove_cover' => ['nullable', 'boolean'],
+        ]);
 
-        foreach ($tags as $tag) {
-            $tag = trim((string) $tag);
+        $meta = collect($validated)
+            ->only(['title', 'artist', 'album', 'genre', 'year', 'track_number'])
+            ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+            ->all();
 
-            if ($tag === '' || isset($seen[mb_strtolower($tag)])) {
-                continue;
-            }
+        $staleCover = $music->cover_image;
+        $picture = $this->stageCover($request, $music);
 
-            $seen[mb_strtolower($tag)] = true;
-            $result[] = $tag;
+        // The library row goes first: if it is rejected, the audio file and
+        // the old artwork are still exactly as they were.
+        $music->fill($meta)->save();
 
-            if (count($result) === 12) {
-                break;
-            }
+        if ($music->cover_image !== $staleCover) {
+            $this->library->deleteCover($staleCover);
         }
 
-        return $result;
+        $written = $this->library->writeTags($music, $meta, $picture);
+
+        return redirect()
+            ->route('music.index')
+            ->with(...$this->saveNotice($music, $written));
+    }
+
+    /**
+     * Point the track at new artwork, or clear it, and return what to embed.
+     *
+     * The replaced file is only deleted once the row is saved, so a failed
+     * save cannot leave the track pointing at artwork that no longer exists.
+     *
+     * @return array{data: string, mime: string}|null
+     */
+    protected function stageCover(Request $request, Music $music): ?array
+    {
+        if (! $file = $request->file('cover')) {
+            if ($request->boolean('remove_cover')) {
+                $music->cover_image = null;
+            }
+
+            return null;
+        }
+
+        $extension = $file->extension() === 'png' ? 'png' : 'jpg';
+        $music->cover_image = $file->storeAs('covers', Str::random(12).'.'.$extension, 'public');
+
+        return [
+            'data' => (string) file_get_contents(storage_path('app/public/'.$music->cover_image)),
+            'mime' => $extension === 'png' ? 'image/png' : 'image/jpeg',
+        ];
+    }
+
+    /**
+     * Flash pair describing what happened to the file itself.
+     *
+     * @return array{0: string, 1: string}
+     */
+    protected function saveNotice(Music $music, bool $written): array
+    {
+        if ($written) {
+            return ['success', 'Saved — the tags are written into the MP3.'];
+        }
+
+        if (! $music->audioExists()) {
+            return ['info', 'Saved in your library. The audio file is missing, so nothing was rewritten.'];
+        }
+
+        if (! $music->tagsAreWritable()) {
+            return ['info', 'Saved in your library. Only MP3 tags can be rewritten, so the file keeps its own tags.'];
+        }
+
+        return ['error', 'Saved in your library, but the file could not be re-tagged.'];
     }
 
     /**

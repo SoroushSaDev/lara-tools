@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\HolidayProvider;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -74,12 +75,30 @@ class PnlHolidayProvider implements HolidayProvider
                 ]))
                 ->all());
 
+            $failed = [];
+
             foreach ($responses as $key => $response) {
+                // A pooled request that never connected yields the exception
+                // itself, not a response, so it has no json() to call.
+                if (! $response instanceof Response) {
+                    $failed[] = $key;
+
+                    // Left uncached on purpose: the next month view retries
+                    // instead of showing a blank calendar for the whole TTL.
+                    $holidays[$key] = [];
+
+                    continue;
+                }
+
                 $titles = $this->parse($response->json());
 
                 Cache::put("holidays:{$key}", $titles, self::CACHE_TTL);
 
                 $holidays[$key] = $titles;
+            }
+
+            if ($failed !== []) {
+                Log::info('Holiday API unreachable', ['dates' => $failed]);
             }
         }
 

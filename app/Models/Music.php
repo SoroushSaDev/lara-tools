@@ -19,9 +19,11 @@ class Music extends Model
         'title',
         'artist',
         'album',
+        'genre',
+        'year',
+        'track_number',
         'duration',
         'cover_image',
-        'tags',
     ];
 
     /**
@@ -33,23 +35,20 @@ class Music extends Model
     {
         return [
             'duration' => 'integer',
-            'tags' => 'array',
+            'year' => 'integer',
+            'track_number' => 'integer',
         ];
     }
 
     /**
-     * Tags as a clean list of strings, oldest-first order preserved.
+     * Whether the stored file's own tag block can be rewritten.
      *
-     * @return list<string>
+     * Only MP3 is handled: getID3 writes Vorbis/FLAC comments by shelling out
+     * to metaflac and vorbiscomment, which this app does not bundle.
      */
-    public function tagList(): array
+    public function tagsAreWritable(): bool
     {
-        return collect($this->tags ?? [])
-            ->map(fn ($tag) => trim((string) $tag))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        return strtolower(pathinfo((string) $this->path, PATHINFO_EXTENSION)) === 'mp3';
     }
 
     /**

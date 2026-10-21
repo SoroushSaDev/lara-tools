@@ -73,54 +73,56 @@
                     <i class="bi bi-stars text-fuchsia-500"></i>Your events · {{ $date->format('M j') }}
                 </h3>
 
-                @forelse ($events as $event)
-                    <div class="group flex items-center gap-3 rounded-xl border-l-4 border-violet-500 bg-violet-500/10 px-4 py-3 transition-colors hover:bg-violet-500/20 dark:border-fuchsia-500 dark:bg-white/[0.04]">
-                        <span class="shrink-0 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 px-2 py-1 text-xs font-bold text-white shadow-sm">
-                            {{ $event->starts_at->format('H:i') }}
-                        </span>
-
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-bold">{{ $event->title }}</p>
-
-                            @if ($event->description)
-                                <p class="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $event->description }}</p>
-                            @endif
-
-                            @if ($calendarShowLocations)
-                                @if ($event->hasLocation())
-                                    <a href="https://www.openstreetmap.org/?mlat={{ $event->latitude }}&mlon={{ $event->longitude }}#map=16/{{ $event->latitude }}/{{ $event->longitude }}"
-                                       target="_blank" rel="noopener noreferrer" data-turbo="false"
-                                       class="block truncate text-xs font-semibold text-slate-400 transition-colors hover:text-violet-500 dark:text-slate-500 dark:hover:text-fuchsia-400">
-                                        <i class="bi bi-geo-alt me-1"></i>{{ $event->address ?: ($event->latitude.', '.$event->longitude) }}
-                                    </a>
-                                @elseif ($event->address)
-                                    <p class="truncate text-xs font-semibold text-slate-400 dark:text-slate-500">
-                                        <i class="bi bi-geo-alt me-1"></i>{{ $event->address }}
-                                    </p>
+                <div class="flex flex-col gap-2.5">
+                    @forelse ($events as $event)
+                        <div class="group flex items-center gap-3 rounded-xl border-l-4 border-violet-500 bg-violet-500/10 px-4 py-3 transition-colors hover:bg-violet-500/20 dark:border-fuchsia-500 dark:bg-white/[0.04]">
+                            <span class="shrink-0 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 px-2 py-1 text-xs font-bold text-white shadow-sm">
+                                {{ $event->starts_at->format('H:i') }}
+                            </span>
+    
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-bold">{{ $event->title }}</p>
+    
+                                @if ($event->description)
+                                    <p class="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $event->description }}</p>
                                 @endif
-                            @endif
+    
+                                @if ($calendarShowLocations)
+                                    @if ($event->hasLocation())
+                                        <a href="https://www.openstreetmap.org/?mlat={{ $event->latitude }}&mlon={{ $event->longitude }}#map=16/{{ $event->latitude }}/{{ $event->longitude }}"
+                                           target="_blank" rel="noopener noreferrer" data-turbo="false"
+                                           class="block truncate text-xs font-semibold text-slate-400 transition-colors hover:text-violet-500 dark:text-slate-500 dark:hover:text-fuchsia-400">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ $event->address ?: ($event->latitude.', '.$event->longitude) }}
+                                        </a>
+                                    @elseif ($event->address)
+                                        <p class="truncate text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ $event->address }}
+                                        </p>
+                                    @endif
+                                @endif
+                            </div>
+    
+                            <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <a href="{{ route('calendar.edit', $event) }}" class="icon-btn size-8 !border-0" title="Edit event">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+    
+                                <form method="POST" action="{{ route('calendar.destroy', $event) }}">
+                                    @csrf
+                                    @method('DELETE')
+    
+                                    <button type="submit" data-confirm="Delete this event?" class="icon-btn icon-btn-danger size-8 !border-0" title="Delete event">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-
-                        <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <a href="{{ route('calendar.edit', $event) }}" class="icon-btn size-8 !border-0" title="Edit event">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-
-                            <form method="POST" action="{{ route('calendar.destroy', $event) }}">
-                                @csrf
-                                @method('DELETE')
-
-                                <button type="submit" data-confirm="Delete this event?" class="icon-btn icon-btn-danger size-8 !border-0" title="Delete event">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @empty
-                    <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
-                        Nothing planned — enjoy the calm.
-                    </p>
-                @endforelse
+                    @empty
+                        <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                            Nothing planned — enjoy the calm.
+                        </p>
+                    @endforelse
+                </div>
             </section>
 
             <section class="glass p-5 animate-fade-up" style="animation-delay: 180ms" @if (! $holidaysEnabled) hidden @endif>
@@ -128,16 +130,18 @@
                     <i class="bi bi-globe-americas text-sky-500"></i>Holidays &amp; observances
                 </h3>
 
-                @forelse ($holidays as $holiday)
-                    <div class="flex items-start gap-2.5 rounded-xl bg-sky-500/10 px-4 py-3">
-                        <i class="bi bi-flag-fill mt-0.5 shrink-0 text-sky-500"></i>
-                        <p class="text-sm leading-relaxed">{{ $holiday }}</p>
-                    </div>
-                @empty
-                    <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
-                        No holidays on this day.
-                    </p>
-                @endforelse
+                <div class="flex flex-col gap-2.5">
+                    @forelse ($holidays as $holiday)
+                        <div class="flex items-start gap-2.5 rounded-xl bg-sky-500/10 px-4 py-3">
+                            <i class="bi bi-flag-fill mt-0.5 shrink-0 text-sky-500"></i>
+                            <p class="text-sm leading-relaxed">{{ $holiday }}</p>
+                        </div>
+                    @empty
+                        <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                            No holidays on this day.
+                        </p>
+                    @endforelse
+                </div>
             </section>
         </aside>
     </div>

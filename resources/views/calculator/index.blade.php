@@ -46,7 +46,7 @@
         {{-- Mode tabs: full-width strip, scrolls horizontally when narrow --}}
         <div class="glass mb-4 flex items-center gap-1.5 overflow-x-auto p-2 lg:col-span-2">
             <button type="button" data-tab="standard" class="tab-pill is-active shrink-0"><i class="bi bi-calculator"></i>Standard</button>
-            <button type="button" data-tab="scientific" class="tab-pill shrink-0"><i class="bi bi-function"></i>Scientific</button>
+            <button type="button" data-tab="scientific" class="tab-pill shrink-0"><i class="bi bi-superscript"></i>Scientific</button>
             <button type="button" data-tab="bmi" class="tab-pill shrink-0"><i class="bi bi-person-bounding-box"></i>BMI</button>
             <button type="button" data-tab="date" class="tab-pill shrink-0"><i class="bi bi-calendar-range"></i>Date</button>
         </div>

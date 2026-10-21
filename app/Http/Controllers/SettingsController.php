@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\SettingRepository;
+use App\Support\DashboardOrder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,14 +19,17 @@ use Illuminate\Validation\Rule;
  *
  * A tab may split its fields into sections (presentational only — keys
  * must name fields declared in the same tab), and any field may carry a
- * `label` instead of the name derived from its key.
+ * `label` instead of the name derived from its key. An `order` field lists
+ * its tiles in `items` and renders one draggable row per tile; with a
+ * `toggle_prefix` each row also embeds that tile's own switch field, so a
+ * tile never appears twice in the form.
  */
 class SettingsController extends Controller
 {
     /**
      * Preference schema grouped by tool tab.
      *
-     * @var array<string, array{label: string, icon: string, fields: array<string, array{type: string, options?: array<string, string>, label?: string, default: string|int}>, sections?: list<array{title: string, hint?: string, keys: list<string>}>}>
+     * @var array<string, array{label: string, icon: string, fields: array<string, array{type: string, options?: array<string, string>, items?: array<string, string>, toggle_prefix?: string, label?: string, default: string|int}>, sections?: list<array{title: string, hint?: string, keys: list<string>}>}>
      */
     protected const TABS = [
         'general' => [
@@ -49,14 +53,18 @@ class SettingsController extends Controller
             'icon' => 'bi-collection',
             'sections' => [
                 [
+                    'title' => 'Layout',
+                    'hint' => 'Drag the groups into the order they should appear.',
+                    'keys' => [
+                        'dashboard_order_sections',
+                    ],
+                ],
+                [
                     'title' => 'Statistics',
                     'hint' => 'The counters row on top of the dashboard.',
                     'keys' => [
                         'dashboard_show_stats',
-                        'dashboard_stat_notes',
-                        'dashboard_stat_open_items',
-                        'dashboard_stat_events',
-                        'dashboard_stat_tracks',
+                        'dashboard_order_stats',
                     ],
                 ],
                 [
@@ -64,18 +72,29 @@ class SettingsController extends Controller
                     'hint' => 'The tool tiles that open every module.',
                     'keys' => [
                         'dashboard_show_shortcuts',
-                        'dashboard_shortcut_notes',
-                        'dashboard_shortcut_todos',
-                        'dashboard_shortcut_calendar',
-                        'dashboard_shortcut_music',
-                        'dashboard_shortcut_weather',
-                        'dashboard_shortcut_calculator',
-                        'dashboard_shortcut_clock',
-                        'dashboard_shortcut_converter',
+                        'dashboard_order_shortcuts',
+                    ],
+                ],
+                [
+                    'title' => 'Widgets',
+                    'hint' => 'Live preview cards, one per module.',
+                    'keys' => [
+                        'dashboard_show_widgets',
+                        'dashboard_order_widgets',
                     ],
                 ],
             ],
             'fields' => [
+                'dashboard_order_sections' => [
+                    'type' => 'order',
+                    'label' => 'Group order',
+                    'items' => [
+                        'stats' => 'Statistics',
+                        'shortcuts' => 'Shortcuts',
+                        'widgets' => 'Widgets',
+                    ],
+                    'default' => '',
+                ],
                 'dashboard_show_stats' => [
                     'type' => 'switch',
                     'label' => 'Show statistics',
@@ -100,6 +119,18 @@ class SettingsController extends Controller
                     'type' => 'switch',
                     'label' => 'Tracks',
                     'default' => '1',
+                ],
+                'dashboard_order_stats' => [
+                    'type' => 'order',
+                    'label' => 'Counters',
+                    'toggle_prefix' => 'dashboard_stat_',
+                    'items' => [
+                        'notes' => 'Notes',
+                        'open_items' => 'Open items',
+                        'events' => 'Upcoming events',
+                        'tracks' => 'Tracks',
+                    ],
+                    'default' => '',
                 ],
                 'dashboard_show_shortcuts' => [
                     'type' => 'switch',
@@ -145,6 +176,83 @@ class SettingsController extends Controller
                     'type' => 'switch',
                     'label' => 'Unit Converter',
                     'default' => '1',
+                ],
+                'dashboard_order_shortcuts' => [
+                    'type' => 'order',
+                    'label' => 'Tool tiles',
+                    'toggle_prefix' => 'dashboard_shortcut_',
+                    'items' => [
+                        'notes' => 'Notes',
+                        'todos' => 'Todo Lists',
+                        'calendar' => 'Calendar',
+                        'music' => 'Music Player',
+                        'weather' => 'Weather',
+                        'calculator' => 'Calculator',
+                        'clock' => 'Clock',
+                        'converter' => 'Unit Converter',
+                    ],
+                    'default' => '',
+                ],
+                'dashboard_show_widgets' => [
+                    'type' => 'switch',
+                    'label' => 'Show widgets',
+                    'default' => '1',
+                ],
+                'dashboard_widget_notes' => [
+                    'type' => 'switch',
+                    'label' => 'Notes',
+                    'default' => '1',
+                ],
+                'dashboard_widget_todos' => [
+                    'type' => 'switch',
+                    'label' => 'Todo Lists',
+                    'default' => '1',
+                ],
+                'dashboard_widget_calendar' => [
+                    'type' => 'switch',
+                    'label' => 'Calendar',
+                    'default' => '1',
+                ],
+                'dashboard_widget_music' => [
+                    'type' => 'switch',
+                    'label' => 'Music',
+                    'default' => '1',
+                ],
+                'dashboard_widget_weather' => [
+                    'type' => 'switch',
+                    'label' => 'Weather',
+                    'default' => '1',
+                ],
+                'dashboard_widget_clock' => [
+                    'type' => 'switch',
+                    'label' => 'Clock',
+                    'default' => '1',
+                ],
+                'dashboard_widget_calculator' => [
+                    'type' => 'switch',
+                    'label' => 'Calculator',
+                    'default' => '1',
+                ],
+                'dashboard_widget_converter' => [
+                    'type' => 'switch',
+                    'label' => 'Converter',
+                    'default' => '1',
+                ],
+                'dashboard_order_widgets' => [
+                    'type' => 'order',
+                    'label' => 'Preview cards',
+                    'toggle_prefix' => 'dashboard_widget_',
+                    'items' => [
+                        'notes' => 'Recent notes',
+                        'todos' => 'Active checklists',
+                        'calendar' => 'Upcoming events',
+                        'music' => 'Recently imported',
+                        'weather' => 'Home town conditions',
+                        'clock' => 'Local time and alarms',
+                        'calculator' => 'Last calculation',
+                        'converter' => 'Quick unit picks',
+                    ],
+                    'default' => '',
                 ],
             ],
         ],
@@ -216,11 +324,6 @@ class SettingsController extends Controller
                     'type' => 'switch',
                     'label' => 'Start shuffled',
                     'default' => '0',
-                ],
-                'music_show_tags' => [
-                    'type' => 'switch',
-                    'label' => 'Show the tag editor on each track',
-                    'default' => '1',
                 ],
             ],
         ],
@@ -310,9 +413,20 @@ class SettingsController extends Controller
 
         foreach (self::TABS as $tab) {
             foreach ($tab['fields'] as $key => $field) {
-                if ($field['type'] !== 'switch') {
-                    $rules[$key] = ['sometimes', Rule::in(array_keys($field['options']))];
+                if ($field['type'] === 'switch') {
+                    continue;
                 }
+
+                if ($field['type'] === 'order') {
+                    // An order travels as a JSON array of tile keys; anything
+                    // malformed is normalised against the tab's canonical list
+                    // when it is saved, so the shape only has to be bounded.
+                    $rules[$key] = ['sometimes', 'string', 'max:255'];
+
+                    continue;
+                }
+
+                $rules[$key] = ['sometimes', Rule::in(array_keys($field['options']))];
             }
         }
 
@@ -327,6 +441,17 @@ class SettingsController extends Controller
                         // partial payloads never reset untouched switches.
                         if ($request->has($key)) {
                             $this->settings->set($key, $request->boolean($key) ? '1' : '0');
+                        }
+
+                        continue;
+                    }
+
+                    if ($field['type'] === 'order') {
+                        if (array_key_exists($key, $validated)) {
+                            $this->settings->set($key, DashboardOrder::encode(
+                                $validated[$key],
+                                array_keys($field['items']),
+                            ));
                         }
 
                         continue;

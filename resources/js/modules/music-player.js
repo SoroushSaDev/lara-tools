@@ -20,10 +20,6 @@
  * contract — but programmatic writes must dispatch a bubbled `input` event
  * for the component to repaint (see syncSlider). The seek slider gets its tip
  * text from root.tipOverride so it shows the target time, not the playhead.
- *
- * Tag editor (music/partial/track.blade.php): form[data-tag-form] (carries
- * @csrf + action), [data-tag-chips] container of span.chip[data-tag],
- * [data-tag-remove="tag"] buttons and a [data-tag-add] text input.
  */
 
 import { onReady } from '../support/ready';
@@ -327,8 +323,8 @@ function bindRows() {
         row.dataset.bound = '1';
 
         row.addEventListener('click', (event) => {
-            // Ignore clicks on nested controls such as the delete button.
-            if (event.target.closest('form') || event.target.closest('button')) return;
+            // Nested controls (delete form, details link) act on their own.
+            if (event.target.closest('form, button, a')) return;
 
             const index = Number(row.dataset.index);
 
@@ -389,125 +385,3 @@ onReady(() => {
     }
 });
 
-/* ---- Tag editor ----------------------------------------------------------
- * Delegated at document level (bound once) so Turbo morphs cannot stack
- * duplicate listeners. Saves are optimistic: chips re-render immediately,
- * roll back with a toast if the PUT fails. The _token lives inside each
- * form (@csrf) because the app has no CSRF meta tag.
- */
-
-const CHIP_CLASS = 'chip bg-violet-500/15 text-violet-700 dark:bg-fuchsia-400/10 dark:text-fuchsia-200';
-
-/** Mirror of the server normalisation: trim, drop empty, dedupe, cap at 12. */
-function normaliseTags(list) {
-    const seen = new Set();
-    const tags = [];
-
-    for (const raw of list) {
-        const tag = String(raw).trim();
-
-        if (tag === '' || seen.has(tag.toLowerCase())) continue;
-
-        seen.add(tag.toLowerCase());
-        tags.push(tag);
-
-        if (tags.length === 12) break;
-    }
-
-    return tags;
-}
-
-function readTags(form) {
-    return [...form.querySelectorAll('[data-tag-chips] [data-tag]')].map((chip) => chip.dataset.tag);
-}
-
-function renderChips(form, tags) {
-    const chips = form.querySelector('[data-tag-chips]');
-
-    if (!chips) return;
-
-    chips.textContent = '';
-
-    tags.forEach((tag) => {
-        const chip = document.createElement('span');
-
-        chip.className = CHIP_CLASS;
-        chip.dataset.tag = tag;
-        chip.append(document.createTextNode(tag));
-
-        const remove = document.createElement('button');
-
-        remove.type = 'button';
-        remove.dataset.tagRemove = tag;
-        remove.title = 'Remove tag';
-        remove.className = '-me-1 opacity-60 transition hover:opacity-100';
-        remove.append(Object.assign(document.createElement('i'), { className: 'bi bi-x-lg text-[10px]' }));
-
-        chip.append(remove);
-        chips.append(chip);
-    });
-}
-
-function saveTags(form, tags) {
-    const previous = readTags(form);
-    const payload = normaliseTags(tags);
-
-    renderChips(form, payload);
-
-    window.axios
-        .put(form.action, { tags: payload, _token: form.querySelector('[name=_token]')?.value })
-        .then((response) => renderChips(form, response.data.tags ?? payload))
-        .catch(() => {
-            renderChips(form, previous);
-            showToast('The tag changes could not be saved.');
-        });
-}
-
-function commitNewTag(input) {
-    const form = input.closest('[data-tag-form]');
-
-    if (!form) return;
-
-    const tag = input.value.replace(/,/g, ' ').trim();
-
-    if (!tag) return;
-
-    saveTags(form, [...readTags(form), tag]);
-    input.value = '';
-}
-
-let tagsBound = false;
-
-onReady(() => {
-    if (tagsBound) return;
-
-    tagsBound = true;
-
-    document.addEventListener('submit', (event) => {
-        if (event.target instanceof HTMLElement && event.target.closest('[data-tag-form]')) {
-            event.preventDefault();
-        }
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ',') return;
-
-        const input = event.target instanceof Element ? event.target.closest('[data-tag-add]') : null;
-
-        if (!input) return;
-
-        // Enter would otherwise implicitly submit the tag form.
-        event.preventDefault();
-        commitNewTag(input);
-    });
-
-    document.addEventListener('click', (event) => {
-        const button = event.target instanceof Element ? event.target.closest('[data-tag-remove]') : null;
-
-        if (!button) return;
-
-        const form = button.closest('[data-tag-form]');
-
-        saveTags(form, readTags(form).filter((tag) => tag !== button.dataset.tagRemove));
-    });
-});

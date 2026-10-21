@@ -24,3 +24,5 @@ import './modules/converter';
 import './modules/slider';
 import './modules/note-editor';
 import './modules/event-map';
+import './modules/reorder';
+import './modules/dashboard-widgets';

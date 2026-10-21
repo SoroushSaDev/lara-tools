@@ -64,7 +64,6 @@ class AppServiceProvider extends ServiceProvider
             'clockShowAnalog' => $on('clock_show_analog'),
             'converterPrecision' => (int) ($settings?->get('converter_precision') ?? 2),
             'musicShuffleDefault' => $on('music_shuffle_default', false),
-            'musicShowTags' => $on('music_show_tags'),
             'notesToolbarCompact' => $on('notes_toolbar_compact', false),
             'weatherShowTechnical' => $on('weather_show_technical'),
             'calendarShowLocations' => $on('calendar_show_locations'),
