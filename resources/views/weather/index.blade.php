@@ -183,14 +183,16 @@
             </div>
         </div>
 
-        {{-- Grouped detail cards, full width --}}
-        <div class="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            <section class="glass p-5 animate-fade-up" style="animation-delay: 60ms">
+        {{-- Grouped detail cards, full width. They stretch to the tallest card
+             in their row and each dl spreads its rows over the leftover height,
+             so a sparse group matches a crowded one instead of coming up short. --}}
+        <div class="grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            <section class="glass flex flex-col p-5 animate-fade-up" style="animation-delay: 60ms">
                 <h3 class="heading mb-4 flex items-center gap-2 text-base">
                     <i class="bi bi-thermometer-sun text-sky-500"></i>At a glance
                 </h3>
 
-                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 auto-rows-fr flex-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     @includeWhen(filled($feelsLike), 'weather.partial.property', ['label' => 'Feels like', 'value' => $feelsLike, 'icon' => 'bi-thermometer-half', 'tone' => 'rose'])
                     @includeWhen(filled($tempRange), 'weather.partial.property', ['label' => 'Min / Max', 'value' => $tempRange, 'icon' => 'bi-thermometer-snow', 'tone' => 'violet'])
                     @includeWhen(filled($humidity), 'weather.partial.property', ['label' => 'Humidity', 'value' => $humidity, 'icon' => 'bi-droplet-half', 'tone' => 'emerald'])
@@ -201,12 +203,12 @@
                 </dl>
             </section>
 
-            <section class="glass p-5 animate-fade-up" style="animation-delay: 120ms">
+            <section class="glass flex flex-col p-5 animate-fade-up" style="animation-delay: 120ms">
                 <h3 class="heading mb-4 flex items-center gap-2 text-base">
                     <i class="bi bi-wind text-sky-500"></i>Wind & sky
                 </h3>
 
-                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 auto-rows-fr flex-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     @includeWhen(filled($windSpeed), 'weather.partial.property', ['label' => 'Wind speed', 'value' => $windSpeed, 'icon' => 'bi-wind'])
                     @includeWhen($windDeg !== null, 'weather.partial.property', ['label' => 'Wind direction', 'value' => $val($windDeg), 'hint' => $prov($windDeg), 'icon' => 'bi-compass'])
                     @includeWhen(filled($windGust), 'weather.partial.property', ['label' => 'Gusts', 'value' => $windGust, 'icon' => 'bi-tornado', 'tone' => 'violet'])
@@ -216,12 +218,12 @@
                 </dl>
             </section>
 
-            <section class="glass p-5 animate-fade-up" style="animation-delay: 180ms">
+            <section class="glass flex flex-col p-5 animate-fade-up" style="animation-delay: 180ms">
                 <h3 class="heading mb-4 flex items-center gap-2 text-base">
                     <i class="bi bi-sunrise text-amber-500"></i>Sun & daylight
                 </h3>
 
-                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 auto-rows-fr flex-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     @includeWhen(filled($sunrise), 'weather.partial.property', ['label' => 'Sunrise', 'value' => $sunrise, 'hint' => $sunriseFrom, 'icon' => 'bi-sunrise', 'tone' => 'amber'])
                     @includeWhen(filled($sunset), 'weather.partial.property', ['label' => 'Sunset', 'value' => $sunset, 'hint' => $sunsetFrom, 'icon' => 'bi-sunset', 'tone' => 'amber'])
                     @includeWhen(filled($observedAt), 'weather.partial.property', ['label' => 'Observed at', 'value' => $observedAt, 'hint' => $observedHint, 'icon' => 'bi-clock-history'])
@@ -229,12 +231,12 @@
                 </dl>
             </section>
 
-            <section class="glass p-5 animate-fade-up" style="animation-delay: 240ms">
+            <section class="glass flex flex-col p-5 animate-fade-up" style="animation-delay: 240ms">
                 <h3 class="heading mb-4 flex items-center gap-2 text-base">
                     <i class="bi bi-geo-alt text-emerald-500"></i>Location
                 </h3>
 
-                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <dl class="grid grid-cols-1 gap-x-5 gap-y-4 auto-rows-fr flex-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     @includeWhen($lat !== null, 'weather.partial.property', ['label' => 'Latitude', 'value' => $val($lat), 'hint' => $prov($lat), 'icon' => 'bi-arrow-up-short'])
                     @includeWhen($lon !== null, 'weather.partial.property', ['label' => 'Longitude', 'value' => $val($lon), 'hint' => $prov($lon), 'icon' => 'bi-arrow-right-short'])
                     @includeWhen($country !== null, 'weather.partial.property', ['label' => 'Country', 'value' => $val($country), 'hint' => $prov($country), 'icon' => 'bi-flag', 'tone' => 'emerald'])
@@ -243,12 +245,12 @@
             </section>
 
             @if ($weatherShowTechnical)
-                <section class="glass p-5 animate-fade-up lg:col-span-2 xl:col-span-1" style="animation-delay: 300ms">
+                <section class="glass flex flex-col p-5 animate-fade-up lg:col-span-2 xl:col-span-1" style="animation-delay: 300ms">
                     <h3 class="heading mb-4 flex items-center gap-2 text-base">
                         <i class="bi bi-info-circle text-slate-400"></i>Technical
                     </h3>
 
-                    <dl class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+                    <dl class="grid grid-cols-1 gap-x-5 gap-y-4 auto-rows-fr flex-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
                         @includeWhen(is_numeric($g('id')), 'weather.partial.property', ['label' => 'City ID', 'value' => (string) $g('id'), 'icon' => 'bi-hash', 'tone' => 'slate'])
                         @includeWhen(is_numeric($g('sys.id')), 'weather.partial.property', ['label' => 'System record ID', 'value' => (string) $g('sys.id'), 'icon' => 'bi-fingerprint', 'tone' => 'slate'])
                         @includeWhen(filled($g('station_id')), 'weather.partial.property', ['label' => 'Station ID', 'value' => (string) $g('station_id'), 'icon' => 'bi-broadcast', 'tone' => 'slate'])

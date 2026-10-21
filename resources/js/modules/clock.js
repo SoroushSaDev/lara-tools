@@ -15,14 +15,16 @@
  *   Timer:             #timer-display, #timer-bar, #timer-minutes,
  *                      #timer-seconds, #timer-start, #timer-reset,
  *                      preset chips [data-timer-preset]
- *   Alarms:            #alarm-form, #alarm-time, #alarm-label, #alarm-repeat,
- *                      #alarm-list, #alarm-empty, #alarm-alert,
- *                      #alarm-alert-text, #alarm-dismiss
+ *   Alarms:            #alarm-form, #alarm-time (hidden HH:MM written by
+ *                      x-time-picker), #alarm-time-error, #alarm-label,
+ *                      day chips [data-alarm-day="0-6"] and the
+ *                      [data-alarm-every] master toggle inside #alarm-days,
+ *                      #alarm-list, #alarm-empty,
+ *                      #alarm-alert, #alarm-alert-text, #alarm-dismiss
  */
 
 import { onReady } from '../support/ready';
-
-const ALARMS_KEY = 'lara-tools.alarms';
+import { ALL_DAYS, appliesOn, describeAlarm, loadAlarms, saveAlarms } from '../support/alarms';
 
 let root = null;
 
@@ -59,6 +61,50 @@ const alarms = {
     alert: null,
     alertText: null,
 };
+
+/** The form's day choice, held here so a Turbo visit can repaint the chips. */
+const composer = {
+    days: new Set(),
+    box: null,
+    every: null,
+};
+
+function paintDays() {
+    composer.box?.querySelectorAll('[data-alarm-day]').forEach((chip) => {
+        const on = composer.days.has(Number(chip.dataset.alarmDay));
+
+        chip.classList.toggle('is-on', on);
+        chip.setAttribute('aria-pressed', String(on));
+    });
+
+    // 'Every day' has no state of its own — it reads as chosen while all
+    // seven days are on.
+    const all = composer.days.size === ALL_DAYS.length;
+
+    composer.every?.classList.toggle('is-on', all);
+    composer.every?.setAttribute('aria-pressed', String(all));
+}
+
+function toggleDay(day) {
+    if (composer.days.has(day)) {
+        composer.days.delete(day);
+    } else {
+        composer.days.add(day);
+    }
+
+    paintDays();
+}
+
+/** Fills all seven days, and empties them again once they are all on. */
+function toggleEveryDay() {
+    if (composer.days.size === ALL_DAYS.length) {
+        composer.days.clear();
+    } else {
+        ALL_DAYS.forEach((day) => composer.days.add(day));
+    }
+
+    paintDays();
+}
 
 /** Pad a number to two digits. */
 function pad(value) {
@@ -356,26 +402,6 @@ function formatAlarmTime(time) {
     return `${(hours % 12) || 12}:${pad(minutes)} ${hours >= 12 ? 'PM' : 'AM'}`;
 }
 
-function loadAlarms() {
-    try {
-        const stored = JSON.parse(localStorage.getItem(ALARMS_KEY) ?? '[]');
-
-        return Array.isArray(stored)
-            ? stored.filter((alarm) => /^\d{2}:\d{2}$/.test(alarm?.time))
-            : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveAlarms() {
-    try {
-        localStorage.setItem(ALARMS_KEY, JSON.stringify(alarms.items));
-    } catch {
-        // Storage unavailable; the alarms still work for this session.
-    }
-}
-
 function renderAlarms() {
     if (!alarms.list) return;
 
@@ -399,7 +425,7 @@ function renderAlarms() {
         const label = document.createElement('p');
 
         label.className = 'truncate text-xs font-bold text-slate-400 dark:text-slate-500';
-        label.textContent = [alarm.label || 'Alarm', alarm.repeat ? 'Every day' : 'Once'].join(' · ');
+        label.textContent = [alarm.label || 'Alarm', describeAlarm(alarm)].join(' · ');
 
         text.append(time, label);
 
@@ -457,9 +483,13 @@ function alarmTick() {
     alarms.items.forEach((alarm) => {
         if (!alarm.enabled || alarm.time !== hhmm || alarm.lastFired === stamp) return;
 
+        // A Mon-Fri alarm must stay silent on Saturday even though the minute
+        // has arrived.
+        if (!appliesOn(alarm, now)) return;
+
         alarm.lastFired = stamp;
 
-        if (!alarm.repeat) alarm.enabled = false;
+        if (alarm.days.length === 0) alarm.enabled = false;
 
         changed = true;
 
@@ -468,23 +498,35 @@ function alarmTick() {
     });
 
     if (changed) {
-        saveAlarms();
+        saveAlarms(alarms.items);
         renderAlarms();
     }
 }
 
 function bindAlarms() {
     const form = document.getElementById('alarm-form');
+    const timeInput = document.getElementById('alarm-time');
+    const timeError = document.getElementById('alarm-time-error');
+    const picker = form?.querySelector('[data-time-picker]');
+
+    /** The picker owns its trigger buttons, so the first one is the tab stop. */
+    const focusPicker = () => picker?.querySelector('.dropdown-trigger')?.focus();
+
+    bindOnce(picker, 'change', () => {
+        // The picker commits its value before this handler runs, so a half-chosen
+        // time (hour only) keeps the message up.
+        timeError.hidden = timeInput.value !== '';
+    });
 
     bindOnce(form, 'submit', (event) => {
         event.preventDefault();
 
-        const timeInput = document.getElementById('alarm-time');
         const labelInput = document.getElementById('alarm-label');
-        const repeatInput = document.getElementById('alarm-repeat');
 
+        // x-time-picker leaves the value empty until both parts are chosen.
         if (!timeInput.value) {
-            timeInput.reportValidity();
+            timeError.hidden = false;
+            focusPicker();
 
             return;
         }
@@ -492,17 +534,32 @@ function bindAlarms() {
         alarms.items.push({
             time: timeInput.value,
             label: labelInput.value.trim(),
-            repeat: repeatInput.checked,
+            days: [...composer.days].sort((a, b) => a - b),
             enabled: true,
             lastFired: '',
         });
 
         alarms.items.sort((a, b) => a.time.localeCompare(b.time));
 
-        saveAlarms();
+        saveAlarms(alarms.items);
         renderAlarms();
 
         form.reset();
+        timeError.hidden = true;
+    });
+
+    // The chips are type="button" inside the form, so one delegated click
+    // handler covers all eight of them.
+    bindOnce(form, 'click', (event) => {
+        if (event.target.closest('[data-alarm-every]')) {
+            toggleEveryDay();
+
+            return;
+        }
+
+        const chip = event.target.closest('[data-alarm-day]');
+
+        if (chip) toggleDay(Number(chip.dataset.alarmDay));
     });
 
     bindOnce(alarms.list, 'change', (event) => {
@@ -516,7 +573,7 @@ function bindAlarms() {
             alarm.enabled = toggle.checked;
             alarm.lastFired = '';
 
-            saveAlarms();
+            saveAlarms(alarms.items);
             renderAlarms();
         }
     });
@@ -528,7 +585,7 @@ function bindAlarms() {
 
         alarms.items.splice(Number(button.dataset.alarmRemove), 1);
 
-        saveAlarms();
+        saveAlarms(alarms.items);
         renderAlarms();
     });
 
@@ -565,9 +622,16 @@ onReady(() => {
     alarms.items = loadAlarms();
     alarms.items.sort((a, b) => a.time.localeCompare(b.time));
 
+    // Fresh DOM from a Turbo visit: re-attach the chips and repaint them to the
+    // choice this page still holds, not the markup's default.
+    composer.box = document.getElementById('alarm-days');
+    composer.every = document.querySelector('[data-alarm-every]');
+
     bindStopwatch();
     bindTimer();
     bindAlarms();
+
+    paintDays();
 
     renderClock();
     renderStopwatch();

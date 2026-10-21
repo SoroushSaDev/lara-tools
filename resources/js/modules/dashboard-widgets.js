@@ -13,8 +13,8 @@
  */
 
 import { onReady } from '../support/ready';
+import { loadAlarms, nextArmed } from '../support/alarms';
 
-const ALARMS_KEY = 'lara-tools.alarms';
 const HISTORY_KEY = 'lara-tools.calc-history';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -68,25 +68,27 @@ function renderClock(root) {
 }
 
 function renderAlarms(root) {
-    const stored = readJson(ALARMS_KEY);
+    const items = loadAlarms();
 
-    if (! Array.isArray(stored)) return;
+    if (items.length === 0) return;
 
-    const valid = stored.filter((alarm) => /^\d{2}:\d{2}$/.test(alarm?.time ?? ''));
-
-    if (valid.length === 0) return;
-
-    const armed = valid
-        .filter((alarm) => alarm.enabled)
-        .map((alarm) => alarm.time)
-        .sort((a, b) => a.localeCompare(b));
-
+    const armedCount = items.filter((alarm) => alarm.enabled).length;
     const format = document.querySelector('[data-widget-clock]')?.dataset.format ?? '24h';
     const plural = (count) => `${count} ${count === 1 ? 'alarm' : 'alarms'}`;
 
-    root.textContent = armed.length === 0
-        ? `${plural(valid.length)} set · none armed`
-        : `${plural(armed.length)} armed · next ${alarmTime(armed[0], format)}`;
+    // nextArmed only looks at days the alarm actually repeats on, so a
+    // Mon-Fri alarm is not announced as the next one over the weekend.
+    const next = armedCount > 0 ? nextArmed(items, new Date()) : null;
+
+    if (next) {
+        const when = next.offset === 0 ? '' : next.offset === 1 ? ' tomorrow' : ` in ${next.offset} days`;
+
+        root.textContent = `${plural(armedCount)} armed · next ${alarmTime(next.time, format)}${when}`;
+    } else {
+        root.textContent = armedCount > 0
+            ? `${plural(armedCount)} armed`
+            : `${plural(items.length)} set · none armed`;
+    }
 
     root.hidden = false;
 }

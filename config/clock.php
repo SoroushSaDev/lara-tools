@@ -5,8 +5,11 @@
 | World Clock Cities
 |--------------------------------------------------------------------------
 |
-| Curated timezones offered in the Clock tool's world-clock tab. Keys are
-| IANA timezone identifiers; values are the displayed city labels.
+| Labels for the popular zones in the Clock tool's world-clock picker, which
+| otherwise shows a city derived from the IANA identifier itself. Keys are
+| identifiers; values are the displayed city labels. Aliases listed here that
+| PHP does not offer on its own (Asia/Istanbul) stay valid for a pin made
+| before the picker went exhaustive.
 |
 */
 

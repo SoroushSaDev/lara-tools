@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\SettingRepository;
+use App\Support\Timezones;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,11 +40,12 @@ class ClockController extends Controller
      */
     public function index(): View
     {
+        $zones = $this->savedZones();
+
         return view('clock.index', [
-            'zones' => $this->savedZones(),
-            'available' => collect(config('clock.zones'))
-                ->except($this->savedZones())
-                ->all(),
+            'zones' => $zones,
+            'zoneLabels' => Timezones::names($zones),
+            'available' => Timezones::grouped($zones),
         ]);
     }
 
@@ -53,8 +55,8 @@ class ClockController extends Controller
     public function saveZones(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'add' => ['sometimes', 'required', 'string', Rule::in(array_keys(config('clock.zones')))],
-            'remove' => ['sometimes', 'required', 'string', Rule::in(array_keys(config('clock.zones')))],
+            'add' => ['sometimes', 'required', 'string', Rule::in(Timezones::identifiers())],
+            'remove' => ['sometimes', 'required', 'string', Rule::in(Timezones::identifiers())],
         ]);
 
         $zones = $this->savedZones();
@@ -89,9 +91,9 @@ class ClockController extends Controller
     {
         $decoded = json_decode((string) $this->settings->get(self::ZONES_KEY, '[]'), true);
 
-        $valid = array_keys(config('clock.zones'));
+        $valid = Timezones::identifiers();
 
-        // Filter against the curated list so stale identifiers never render.
+        // Filter against known zones so a typo in the stored list never renders.
         return array_values(array_intersect(is_array($decoded) ? $decoded : [], $valid));
     }
 }

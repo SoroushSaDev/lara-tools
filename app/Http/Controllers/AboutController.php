@@ -101,7 +101,7 @@ class AboutController extends Controller
             'summary' => 'Four tabs driven by one ticking loop.',
             'points' => [
                 'Analog and digital local clock, 24- or 12-hour, seconds optional.',
-                'Pinned world clocks built from a curated timezone list.',
+                'Pinned world clocks, searchable across every IANA timezone.',
                 'Stopwatch with laps.',
                 'Countdown timer with a progress bar, one-minute to one-hour presets and an audible alert.',
                 'Repeating alarms that ring while the Clock tool is open.',

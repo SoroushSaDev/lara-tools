@@ -45,16 +45,19 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function viewSettings(): array
     {
-        // Preferences live in the database; tolerate a not-yet-migrated
-        // database so artisan bootstrap (e.g. package discovery) still works.
-        try {
-            $settings = $this->app->make(SettingRepository::class);
-        } catch (\Throwable) {
-            $settings = null;
-        }
+        // Preferences live in the database, but the table may not exist yet
+        // (a test boots before its migrations, package discovery runs against
+        // an empty database), so a failed read simply falls back to default.
+        $read = function (string $key): mixed {
+            try {
+                return $this->app->make(SettingRepository::class)->get($key);
+            } catch (\Throwable) {
+                return null;
+            }
+        };
 
-        $text = fn (string $key, string $default): string => (string) ($settings?->get($key) ?? $default);
-        $on = fn (string $key, bool $default = true): bool => ($settings?->get($key) ?? ($default ? '1' : '0')) === '1';
+        $text = fn (string $key, string $default): string => (string) ($read($key) ?? $default);
+        $on = fn (string $key, bool $default = true): bool => ($read($key) ?? ($default ? '1' : '0')) === '1';
 
         return [
             'weatherUnits' => $text('weather_units', (string) config('services.openweather.units', 'metric')),
@@ -62,7 +65,7 @@ class AppServiceProvider extends ServiceProvider
             'clockTimeFormat' => $text('clock_time_format', '24h'),
             'clockShowSeconds' => $on('clock_show_seconds'),
             'clockShowAnalog' => $on('clock_show_analog'),
-            'converterPrecision' => (int) ($settings?->get('converter_precision') ?? 2),
+            'converterPrecision' => (int) ($read('converter_precision') ?? 2),
             'musicShuffleDefault' => $on('music_shuffle_default', false),
             'notesToolbarCompact' => $on('notes_toolbar_compact', false),
             'weatherShowTechnical' => $on('weather_show_technical'),

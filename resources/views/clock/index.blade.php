@@ -28,7 +28,7 @@
 
         {{-- Local clock plus the pinned world clocks --}}
         <section data-tab-panel="world" class="animate-fade-up">
-            {{-- Two columns on lg: local clock | pinned cities + pin form.
+            {{-- Two columns on lg: local clock | pin form above the pinned cities.
                  The grid lives on an inner wrapper so the panel toggle keeps
                  using the bare `hidden` attribute on the section itself. --}}
             <div class="lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
@@ -57,15 +57,42 @@
                 </div>
 
                 <div class="min-w-0">
-                    <h2 class="heading mb-3 flex items-center gap-2 text-lg">
+                    {{-- The picker sits above the list: every timezone is on offer,
+                         so choosing comes first and the pins are what it feeds. --}}
+                    <form method="POST" action="{{ route('clock.zones') }}"
+                          class="glass flex flex-wrap items-center justify-center gap-3 p-4 animate-fade-up">
+                        @csrf
+
+                        <div class="dropdown relative min-w-52 flex-1">
+                            <select name="add" data-dropdown data-dropdown-filter required
+                                    class="sr-only">
+                                <option value="" disabled selected>Choose a city…</option>
+
+                                {{-- One group per region, curated cities inside it. --}}
+                                @foreach ($available as $region => $cities)
+                                    <optgroup label="{{ $region }}">
+                                        @foreach ($cities as $timezone => $city)
+                                            <option value="{{ $timezone }}">{{ $city }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            <i class="bi bi-plus-lg"></i>Pin clock
+                        </button>
+                    </form>
+
+                    <h2 class="heading mt-5 mb-3 flex items-center gap-2 text-lg">
                         <i class="bi bi-pin-angle-fill text-violet-500 dark:text-fuchsia-400"></i>Pinned cities
                     </h2>
 
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                        @forelse ($zones as $zone)
+                        @forelse ($zoneLabels as $zone => $city)
                             <div class="glass glass-hover flex items-center gap-4 p-4 animate-fade-up">
                                 <div class="min-w-0 flex-1">
-                                    <p class="truncate font-bold sm:text-lg">{{ config('clock.zones')[$zone] }}</p>
+                                    <p class="truncate font-bold sm:text-lg">{{ $city }}</p>
                                     <p class="truncate text-[11px] font-bold text-slate-400 dark:text-slate-500">{{ $zone }}</p>
                                 </div>
 
@@ -75,7 +102,7 @@
                                     @csrf
                                     <input type="hidden" name="remove" value="{{ $zone }}"/>
 
-                                    <button type="submit" class="icon-btn icon-btn-danger !size-9" title="Unpin {{ config('clock.zones')[$zone] }}">
+                                    <button type="submit" class="icon-btn icon-btn-danger !size-9" title="Unpin {{ $city }}">
                                         <i class="bi bi-pin-angle-fill"></i>
                                     </button>
                                 </form>
@@ -83,33 +110,11 @@
                         @empty
                             <div class="col-span-full">
                                 <x-empty-state icon="bi-globe" title="No world clocks pinned">
-                                    <x-slot:description>Pin cities below to compare times at a glance.</x-slot:description>
+                                    <x-slot:description>Pin cities above to compare times at a glance.</x-slot:description>
                                 </x-empty-state>
                             </div>
                         @endforelse
                     </div>
-
-                    @if (! empty($available))
-                        <form method="POST" action="{{ route('clock.zones') }}"
-                              class="glass mt-4 flex flex-wrap items-center justify-center gap-3 p-4 animate-fade-up">
-                            @csrf
-
-                            <div class="dropdown relative min-w-52 flex-1">
-                                <select name="add" data-dropdown required
-                                        class="sr-only">
-                                    <option value="" disabled selected>Choose a city…</option>
-
-                                    @foreach ($available as $timezone => $city)
-                                        <option value="{{ $timezone }}">{{ $city }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn-primary">
-                                <i class="bi bi-plus-lg"></i>Pin clock
-                            </button>
-                        </form>
-                    @endif
                 </div>
             </div>
         </section>
@@ -177,7 +182,7 @@
             {{-- Two columns on lg: alert + form | alarm list. The grid is on
                  an inner wrapper; the panel keeps the bare `hidden` attribute
                  on the section for tabs.js. --}}
-            <div class="lg:grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+            <div class="lg:grid lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
                 <div class="min-w-0">
                     <div id="alarm-alert" class="glass mb-4 hidden items-center gap-3 border-rose-500/40 bg-rose-500/15 px-4 py-3" role="status">
                         <i class="bi bi-alarm-fill shrink-0 text-xl text-rose-500"></i>
@@ -189,30 +194,51 @@
                         </button>
                     </div>
 
-                    <form id="alarm-form" class="glass mb-4 flex flex-wrap items-end gap-3 p-4 animate-fade-up">
-                        <label>
-                            <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Time</span>
-                            <input type="time" id="alarm-time" required
-                                   class="field-input !w-auto tabular-nums"/>
-                        </label>
+                    <form id="alarm-form" class="glass mb-4 flex flex-col gap-4 p-5 animate-fade-up">
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div>
+                                <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Time</span>
 
-                        <label class="min-w-40 flex-1">
-                            <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Label</span>
-                            <input type="text" id="alarm-label" maxlength="40" placeholder="Wake up"
-                                   class="field-input w-full"/>
-                        </label>
+                                {{-- Reads as HH:MM from #alarm-time, the component's hidden value. --}}
+                                <x-time-picker id="alarm-time" format="{{ $clockTimeFormat }}"/>
 
-                        <label class="flex cursor-pointer items-center gap-2">
-                            <span class="relative inline-flex">
-                                <input type="checkbox" id="alarm-repeat" class="peer sr-only" checked/>
-                                <span class="block h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-gradient-to-r peer-checked:from-violet-600 peer-checked:to-fuchsia-600 dark:bg-slate-600"></span>
-                                <span class="pointer-events-none absolute left-1 top-1 size-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5"></span>
-                            </span>
+                                {{-- Hidden inputs take part in no constraint validation, so the
+                                     missing-time message lives here. --}}
+                                <p id="alarm-time-error" class="field-error" hidden>Pick an hour and a minute.</p>
+                            </div>
 
-                            <span class="text-sm font-bold">Repeat daily</span>
-                        </label>
+                            <label class="min-w-40 flex-1">
+                                <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Label</span>
+                                <input type="text" id="alarm-label" maxlength="40" placeholder="Wake up"
+                                       class="field-input w-full"/>
+                            </label>
+                        </div>
 
-                        <button type="submit" class="btn-primary">
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Repeats</span>
+
+                                <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                                    Pick nothing for a one-time alarm
+                                </span>
+                            </div>
+
+                            {{-- 'Every day' is the master toggle: it fills the seven chips
+                                 and empties them again on the next click. --}}
+                            <div id="alarm-days" class="mt-2 flex flex-wrap items-center gap-1.5">
+                                <button type="button" class="day-chip day-chip-wide" data-alarm-every
+                                        aria-pressed="false">Every day</button>
+
+                                <span class="me-1 h-7 w-px bg-slate-900/10 dark:bg-white/10" aria-hidden="true"></span>
+
+                                @foreach (['Sun' => 'Sunday', 'Mon' => 'Monday', 'Tue' => 'Tuesday', 'Wed' => 'Wednesday', 'Thu' => 'Thursday', 'Fri' => 'Friday', 'Sat' => 'Saturday'] as $short => $full)
+                                    <button type="button" class="day-chip" data-alarm-day="{{ $loop->index }}"
+                                            aria-pressed="false" title="{{ $full }}">{{ $short }}</button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary self-end">
                             <i class="bi bi-plus-lg"></i>Add alarm
                         </button>
                     </form>

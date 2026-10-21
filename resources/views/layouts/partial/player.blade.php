@@ -2,10 +2,15 @@
      Music page (body receives .on-music-page from the layout). Marked
      data-turbo-permanent so playback survives Turbo navigation.
      Duplicated controls (cover, title, play icon, actions) are wired through
-     data-* hooks because they appear in both modes. --}}
+     data-* hooks because they appear in both modes.
+
+     Mobile spans inset-x-3 in both modes, matching the deck and leaving the
+     same gutter the bottom nav clears; only from lg does the pill shrink back
+     to its content width and anchor to the right. The bottom offset has to
+     clear the 82px nav, whose z-40 would otherwise cut the pill's lower edge. --}}
 <div id="player" data-turbo-permanent
-     class="fixed bottom-[4.6rem] right-3 z-30 hidden flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-2xl shadow-slate-900/20 backdrop-blur-2xl
-         lg:bottom-5 lg:right-6 dark:border-white/10 dark:bg-slate-900/85 animate-fade-up">
+     class="fixed inset-x-3 bottom-[5.5rem] z-30 hidden flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-2xl shadow-slate-900/20 backdrop-blur-2xl
+         lg:inset-x-auto lg:bottom-5 lg:right-6 dark:border-white/10 dark:bg-slate-900/85 animate-fade-up">
     {{-- Thin progress line shared by both modes --}}
     <span class="absolute inset-x-0 top-0 h-0.5 bg-slate-900/10 dark:bg-white/10">
         <span class="block h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-300" data-player-line style="width: 0%"></span>
