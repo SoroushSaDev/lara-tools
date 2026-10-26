@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Artisan;
 use Native\Laravel\Contracts\ProvidesPhpIni;
 use Native\Laravel\Facades\Menu;
 use Native\Laravel\Facades\Window;
@@ -14,6 +15,8 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
+        $this->prepareDatabase();
+
         Window::open()
             ->width(1280)
             ->height(820)
@@ -46,5 +49,42 @@ class NativeAppServiceProvider implements ProvidesPhpIni
     public function phpIni(): array
     {
         return [];
+    }
+
+    /**
+     * Make sure the local database exists and is at the current schema.
+     *
+     * NativePHP only does this when `app.debug` is on, and a packaged app
+     * never has it on, so an installed app would otherwise meet a missing
+     * file or a stale schema on its very first window. Merging is
+     * idempotent: an up-to-date install costs one SELECT.
+     */
+    public function prepareDatabase(): void
+    {
+        $connection = config('database.default');
+        $path = config("database.connections.{$connection}.database");
+
+        // A named connection that is not a file (:memory:, MySQL…) needs no
+        // file to create, but still has to be migrated.
+        if (is_string($path) && $path !== '' && ! str_starts_with($path, ':')) {
+            $directory = dirname($path);
+
+            if (! is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            if (! file_exists($path)) {
+                touch($path);
+            }
+        }
+
+        try {
+            Artisan::call('migrate', ['--force' => true, '--no-interaction' => true]);
+        } catch (\Throwable $exception) {
+            // Never let a schema problem stop the window from opening: the
+            // logs are the only way to see what happened, and a crash on
+            // launch leaves the user with nothing to look at.
+            report($exception);
+        }
     }
 }

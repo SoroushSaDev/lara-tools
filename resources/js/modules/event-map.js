@@ -13,10 +13,15 @@
  *  - Empty coords: the map centres on a neutral default with no marker;
  *    the first click drops a draggable pin.
  *  - Tiles are best-effort (OSM needs internet); the picker stays usable
- *    without them, so nothing is gated on tile loading.
+ *    without them, so nothing is gated on tile loading. A basemap notice
+ *    names the failure instead of leaving a grey rectangle.
  */
 
 import L from 'leaflet';
+
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 import { onReady } from '../support/ready';
 
@@ -24,6 +29,22 @@ import { onReady } from '../support/ready';
 const DEFAULT_CENTER = [35.7, 51.38];
 const DEFAULT_ZOOM = 11;
 const POINT_ZOOM = 15;
+
+/**
+ * Leaflet's default icon derives its folder from the stylesheet, which finds
+ * nothing once Vite has hashed the filenames, so the pin points at the
+ * imported assets directly. Sizes copy L.Icon.Default's own options.
+ */
+const PIN = L.icon({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41],
+});
 
 /** Parse stored coordinates; null when absent or out of range. */
 function storedPoint(el) {
@@ -56,10 +77,30 @@ function initPicker(el) {
 
     const map = L.map(el, { scrollWheelZoom: false });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Turbo can restore a cached page, so reuse the notice rather than
+    // stacking one per visit.
+    let notice = el.querySelector('.map-basemap-notice');
+
+    if (!notice) {
+        notice = document.createElement('p');
+        notice.className = 'map-basemap-notice';
+        notice.textContent = 'Basemap unavailable — the pin still works; click to place it.';
+        el.appendChild(notice);
+    }
+
+    notice.hidden = true;
+
+    const basemap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
+    });
+
+    // Offline is the normal state for the desktop app, so say so once instead
+    // of letting every tile failure pile up. A later tile clears the notice.
+    basemap.on('tileerror', () => { notice.hidden = false; });
+    basemap.on('tileload', () => { notice.hidden = true; });
+
+    basemap.addTo(map);
 
     let marker = null;
 
@@ -80,7 +121,7 @@ function initPicker(el) {
         if (marker) {
             marker.setLatLng(point);
         } else {
-            marker = L.marker(point, { draggable: true, title: 'Event location' }).addTo(map);
+            marker = L.marker(point, { draggable: true, icon: PIN, title: 'Event location' }).addTo(map);
 
             marker.on('dragend', () => {
                 const dragged = marker.getLatLng();

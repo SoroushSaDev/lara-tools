@@ -132,7 +132,41 @@
         </x-slot:actions>
     </x-page-header>
 
-    @if (isset($error))
+    @if ($needsKey ?? false)
+        {{-- Nothing was even attempted: with no key the numbers on screen can
+             only be stored ones, and the fix is a setting, not a router. --}}
+        <div class="glass mb-4 flex flex-wrap items-center gap-3 border-l-4 !border-l-violet-500 p-4 animate-fade-up" role="status">
+            <i class="bi bi-key-fill shrink-0 text-xl text-violet-500"></i>
+
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-bold">No weather API key saved.</p>
+                <p class="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    @if ($city)
+                        Showing the reading saved {{ $city->updated_at?->diffForHumans() }}. Add a key to refresh it.
+                    @else
+                        Add an OpenWeatherMap key to fetch live conditions.
+                    @endif
+                </p>
+            </div>
+
+            <a href="{{ route('settings', ['tab' => 'weather']) }}" class="btn-ghost shrink-0" title="Open the Weather settings tab">
+                <i class="bi bi-gear"></i><span>Add key</span>
+            </a>
+        </div>
+    @elseif ($fromSnapshot ?? false)
+        {{-- No connection, but the saved city keeps its last reading: say so
+             plainly instead of showing the numbers as if they were live. --}}
+        <div class="glass mb-4 flex items-center gap-3 border-l-4 !border-l-amber-500 p-4 animate-fade-up" role="status">
+            <i class="bi bi-wifi-off shrink-0 text-xl text-amber-500"></i>
+
+            <div class="min-w-0">
+                <p class="text-sm font-bold">
+                    Offline — showing the reading saved {{ $city?->updated_at?->diffForHumans() ?? 'earlier' }}.
+                </p>
+                <p class="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">{{ $error }}</p>
+            </div>
+        </div>
+    @elseif (isset($error))
         <div class="glass mb-4 flex items-center gap-3 border-l-4 !border-l-rose-500 p-4 animate-fade-up">
             <i class="bi bi-wifi-off shrink-0 text-xl text-rose-500"></i>
             <p class="text-sm font-bold">{{ $error }}</p>

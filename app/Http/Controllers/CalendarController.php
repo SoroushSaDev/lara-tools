@@ -73,6 +73,7 @@ class CalendarController extends Controller
             'eventDays' => $eventsByDay->keys()->all(),
             'holidays' => $holidaysByDay[(int) $date->format('j')] ?? [],
             'holidaysByDay' => $holidaysByDay,
+            'holidaysUnavailable' => $holidaysEnabled && $this->holidays->isUnavailable(),
             'weekStart' => (int) ($this->settings->get('calendar_week_start') ?? 0),
             'holidaysEnabled' => $holidaysEnabled,
         ]);

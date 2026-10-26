@@ -1,0 +1,145 @@
+name: CI
+
+# Every pull request and every push to main is checked on the three PHP
+# versions NativePHP can bundle (see the php-bin matrix), so a release build
+# can never be the first time a version is exercised.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    name: Code style
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # Must be 8.3, 8.4 or 8.5: nativephp/php-bin only ships binaries for
+          # those, and `native:build` bundles the version running the build.
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+
+      - name: Check formatting
+        run: vendor/bin/pint --test
+
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # The app is sqlite-only; gd and intl back the Jalali calendar and
+          # cover art, zip is required by nativephp/electron.
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, openssl, pdo_sqlite, sodium, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare the environment
+        # The repository ships no .env; the suite still needs an APP_KEY
+        # because the web middleware encrypts cookies.
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Run the test suite
+        run: php artisan test --no-interaction
+
+  assets:
+    name: Frontend build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        # Catches a Vite or Tailwind failure that would otherwise only show up
+        # as a blank window in a packaged app.
+        run: npm run build
+
+      - name: Confirm the manifest was emitted
+        run: test -f public/build/manifest.json
+
+  hygiene:
+    name: No secrets in the box
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tracked tree
+        run: |
+          set -euo pipefail
+
+          if git ls-files | grep -qx '.env'; then
+            echo '::error::.env is tracked. It must stay out of the repository.'
+            exit 1
+          fi
+
+          # .env.example is copied into every installer, so anything that looks
+          # like a credential must be left blank. The skeleton's literal "null"
+          # is an unset value, not a secret.
+          offenders=$(awk -F= '
+            /^[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*=/ {
+              value = substr($0, index($0, "=") + 1)
+              if (value != "" && value != "null") print $1
+            }' .env.example)
+
+          if [ -n "$offenders" ]; then
+            echo "$offenders"
+            echo '::error::.env.example carries a populated credential. Leave those keys empty.'
+            exit 1
+          fi
+
+          # Everything outside cleanup_env_keys is bundled verbatim, so any
+          # credential this app can read from .env has to be named there.
+          for key in APP_DEBUG APP_ENV OPENWEATHER_API_KEY; do
+            if ! grep -q "'$key'," config/nativephp.php; then
+              echo "::error::$key is not in nativephp.cleanup_env_keys and would ship inside the installer."
+              exit 1
+            fi
+          done

@@ -137,8 +137,15 @@
                             <p class="text-sm leading-relaxed">{{ $holiday }}</p>
                         </div>
                     @empty
+                        {{-- An empty list is also what no connection looks like,
+                             so say which of the two it is. --}}
                         <p class="py-4 text-center text-sm font-bold text-slate-400 dark:text-slate-500">
-                            No holidays on this day.
+                            @if ($holidaysUnavailable ?? false)
+                                <i class="bi bi-wifi-off me-1 text-amber-500"></i>
+                                Holiday list could not be downloaded — retrying shortly.
+                            @else
+                                No holidays on this day.
+                            @endif
                         </p>
                     @endforelse
                 </div>

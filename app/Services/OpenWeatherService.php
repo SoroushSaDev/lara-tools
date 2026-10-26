@@ -26,15 +26,16 @@ class OpenWeatherService implements WeatherServiceContract
      *
      * All parameters fall back to configuration so the service is usable
      * both through the container and when constructed manually in tests.
+     * The injected key is kept as given: it has to stay tellable apart from
+     * the one read out of `services.openweather.key`.
      *
-     * @param  SettingRepository|null  $settings  Provides the preferred measurement unit.
+     * @param  SettingRepository|null  $settings  Provides the preferred measurement unit and the user's API key.
      */
     public function __construct(
         protected ?string $apiKey = null,
         protected ?string $baseUrl = null,
         protected ?SettingRepository $settings = null,
     ) {
-        $this->apiKey ??= config('services.openweather.key');
         $this->baseUrl ??= config('services.openweather.base_url', 'https://api.openweathermap.org/data/2.5');
         $this->settings ??= app(SettingRepository::class);
         $this->baseUrl = rtrim($this->baseUrl, '/');
@@ -57,6 +58,39 @@ class OpenWeatherService implements WeatherServiceContract
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function isConfigured(): bool
+    {
+        return filled($this->resolveKey());
+    }
+
+    /**
+     * Which key to call the API with.
+     *
+     * An injected key wins (that is how tests and manual construction pin
+     * one), then the one typed into Settings — the user's own choice — and
+     * only last the environment value, which exists on development machines
+     * but is stripped from every bundled app.
+     */
+    protected function resolveKey(): ?string
+    {
+        if (filled($this->apiKey)) {
+            return $this->apiKey;
+        }
+
+        $stored = trim((string) ($this->settings->get('weather_api_key') ?? ''));
+
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        $fromConfig = config('services.openweather.key');
+
+        return filled($fromConfig) ? (string) $fromConfig : null;
+    }
+
+    /**
      * Resolve the unit system configured by the user.
      */
     protected function defaultUnits(): string
@@ -74,13 +108,15 @@ class OpenWeatherService implements WeatherServiceContract
      */
     protected function fetch(array $query, ?string $units): array
     {
-        if (empty($this->apiKey)) {
+        $key = $this->resolveKey();
+
+        if (empty($key)) {
             throw new WeatherException('No OpenWeatherMap API key is configured.');
         }
 
         try {
             $response = Http::timeout(self::TIMEOUT)->get("{$this->baseUrl}/weather", array_merge($query, [
-                'appid' => $this->apiKey,
+                'appid' => $key,
                 'units' => $units ?? $this->defaultUnits(),
             ]));
         } catch (ConnectionException $exception) {

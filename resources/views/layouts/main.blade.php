@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
 
+    {{-- The SVG is crisp at every size; the .ico stays for the engines that
+         still fall back to it (and for Electron's window/taskbar icon). --}}
+    <link rel="icon" type="image/svg+xml" href="{{ asset('icon.svg') }}">
+    <link rel="alternate icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+
     <title>@yield('title', 'LaraTools') · LaraTools</title>
 
     <!-- Apply the saved theme before first paint to avoid a flash.

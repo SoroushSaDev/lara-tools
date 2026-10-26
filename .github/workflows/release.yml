@@ -1,0 +1,168 @@
+name: Release builds
+
+# Produces the Windows installer and the Linux AppImage/.deb with
+# `php artisan native:build`, which is the same command a developer runs
+# locally. Each OS is built on its own runner because electron-builder can
+# only package for the platform it runs on.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x64
+            runs-on: ubuntu-24.04
+            os: linux
+            # electron-builder also leaves a full unpacked app in dist/, which
+            # is not a deliverable and would triple the artifact size.
+            deliverables: |
+              dist/*.AppImage
+              dist/*.deb
+          - label: windows-x64
+            runs-on: windows-latest
+            os: win
+            deliverables: |
+              dist/*.exe
+    env:
+      # native:build bundles the PHP binary matching the version that runs it.
+      PHP_VERSION: '8.5'
+      # A tag is the only thing that names a version; a manual run from a
+      # branch keeps whatever config/nativephp.php declares.
+      TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, openssl, pdo_sqlite, sodium, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # nativephp.prebuild runs `npm run build` (Vite) inside the build, so the
+      # root toolchain has to be installed before the packaging starts.
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Prepare the environment
+        # The installer ships this .env after nativephp.cleanup_env_keys has
+        # stripped it, so nothing here may be a secret. The key is generated,
+        # never committed.
+        shell: bash
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          # A branch build keeps the version in config/nativephp.php; only a
+          # tag defines a release number, and electron-builder needs it
+          # without the leading "v".
+          if [ -n "${TAG}" ]; then
+            echo "NATIVEPHP_APP_VERSION=${TAG#v}" >> .env
+          fi
+          grep -E '^(APP_NAME|NATIVEPHP_APP_VERSION)=' .env || true
+
+      - name: Build the installers
+        shell: bash
+        run: php artisan native:build "${{ matrix.os }}" x64 --no-interaction
+
+      - name: Inspect what the installer will contain
+        shell: bash
+        run: ls -la dist
+
+      # The two ways a packaged app can fail silently: a credential copied in
+      # beside the app, and a bundle without compiled assets, which opens on a
+      # page with no CSS or JS. Both are cheap to prove here.
+      - name: Verify the bundled app is clean
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bundle=vendor/nativephp/electron/resources/js/resources/app
+          test -d "$bundle" || { echo "::error::No app bundle was assembled."; exit 1; }
+
+          # Keys that must not reach a user's machine at all: they would either
+          # leak a credential or keep the app in debug mode forever.
+          for key in APP_ENV APP_DEBUG OPENWEATHER_API_KEY; do
+            if grep -q "^${key}=" "$bundle/.env"; then
+              echo "::error::${key} survived into the installed .env."
+              exit 1
+            fi
+          done
+
+          # Anything that looks like a credential has to be unset. APP_KEY is
+          # the exception the app genuinely needs to encrypt its own cookies.
+          if awk -F= '
+            /^[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*=/ {
+              value = substr($0, index($0, "=") + 1)
+              if ($1 != "APP_KEY" && value != "" && value != "null") { print "  populated: " $1; bad = 1 }
+            }
+            END { exit bad ? 1 : 0 }' "$bundle/.env"; then
+            echo "  (no stray credentials found)"
+          else
+            echo '::error::The installed .env still carries a populated credential.'
+            exit 1
+          fi
+
+          grep -q '^LOG_LEVEL=warning$' "$bundle/.env" \
+            || { echo '::error::The bundle was not marked as a production environment.'; exit 1; }
+
+          test -s "$bundle/public/build/manifest.json" \
+            || { echo '::error::public/build is missing from the bundle: the window would boot blank.'; exit 1; }
+
+          echo "Bundle verified: $(wc -l < "$bundle/.env") env lines, $(find "$bundle/public/build" -type f | wc -l) asset files."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: laratools-${{ matrix.label }}
+          path: ${{ matrix.deliverables }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          body: |
+            Offline desktop builds for LaraTools.
+
+            Linux: the `.AppImage` runs directly (`chmod +x` it) and the `.deb`
+            installs with your package manager. Windows: run the `-Setup.exe`
+            installer.
+
+            No API key is bundled — add your own under Settings → Weather to
+            refresh live conditions; everything else works with no connection.

@@ -103,6 +103,24 @@
                                             @endforeach
                                         </ul>
                                     </div>
+                                @elseif ($field['type'] === 'text')
+                                    <label class="block">
+                                        <span class="mb-2.5 block text-sm font-bold">{{ $field['label'] ?? str($field['key'])->replace('_', ' ') }}</span>
+
+                                        <input type="text" name="{{ $field['key'] }}"
+                                               value="{{ $field['current'] }}"
+                                               class="field-input font-mono"
+                                               placeholder="{{ $field['placeholder'] ?? '' }}"
+                                               autocomplete="off" spellcheck="false"/>
+
+                                        @if (filled($field['hint'] ?? null))
+                                            <span class="mt-1.5 block text-xs font-semibold text-slate-400 dark:text-slate-500">{{ $field['hint'] }}</span>
+                                        @endif
+
+                                        @error($field['key'])
+                                            <span class="field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
+                                        @enderror
+                                    </label>
                                 @else
                                     <p class="mb-2.5 text-sm font-bold capitalize">{{ $field['label'] ?? str($field['key'])->remove(['_format', '_start', '_precision'])->replace('_', ' ') }}</p>
 

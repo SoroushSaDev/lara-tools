@@ -331,6 +331,13 @@ class SettingsController extends Controller
             'label' => 'Weather',
             'icon' => 'bi-cloud-sun',
             'fields' => [
+                'weather_api_key' => [
+                    'type' => 'text',
+                    'label' => 'OpenWeatherMap API key',
+                    'hint' => 'Stored on this machine only. Without one the app keeps showing the readings already saved for your cities.',
+                    'placeholder' => 'Your key from home.openweathermap.org',
+                    'default' => '',
+                ],
                 'weather_units' => [
                     'type' => 'radio',
                     'options' => ['metric' => '°C · Metric', 'imperial' => '°F · Imperial'],
@@ -417,6 +424,14 @@ class SettingsController extends Controller
                     continue;
                 }
 
+                if ($field['type'] === 'text') {
+                    // Free-form values (an API key) are only length-bounded;
+                    // an empty submission is a deliberate clear.
+                    $rules[$key] = ['sometimes', 'nullable', 'string', 'max:255'];
+
+                    continue;
+                }
+
                 if ($field['type'] === 'order') {
                     // An order travels as a JSON array of tile keys; anything
                     // malformed is normalised against the tab's canonical list
@@ -452,6 +467,14 @@ class SettingsController extends Controller
                                 $validated[$key],
                                 array_keys($field['items']),
                             ));
+                        }
+
+                        continue;
+                    }
+
+                    if ($field['type'] === 'text') {
+                        if (array_key_exists($key, $validated)) {
+                            $this->settings->set($key, trim((string) $validated[$key]));
                         }
 
                         continue;

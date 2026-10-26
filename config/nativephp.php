@@ -13,7 +13,7 @@ return [
      * usually in the form of a reverse domain name.
      * For example: com.nativephp.app
      */
-    'app_id' => env('NATIVEPHP_APP_ID', 'com.nativephp.app'),
+    'app_id' => env('NATIVEPHP_APP_ID', 'com.laratools.desktop'),
 
     /**
      * If your application allows deep linking, you can specify the scheme
@@ -24,17 +24,26 @@ return [
      * This would allow you to open your application using a URL like:
      * nativephp://some/path
      */
-    'deeplink_scheme' => env('NATIVEPHP_DEEPLINK_SCHEME'),
+    'deeplink_scheme' => env('NATIVEPHP_DEEPLINK_SCHEME', 'laratools'),
 
     /**
      * The author of your application.
      */
-    'author' => env('NATIVEPHP_APP_AUTHOR'),
+    'author' => env('NATIVEPHP_APP_AUTHOR', 'LaraTools'),
 
     /**
      * The copyright notice for your application.
      */
-    'copyright' => env('NATIVEPHP_APP_COPYRIGHT'),
+    'copyright' => env('NATIVEPHP_APP_COPYRIGHT', 'Copyright © 2026 LaraTools'),
+
+    /**
+     * Blurb and homepage written into the packaged app's metadata
+     * (package.json, then the NSIS installer and the Linux .desktop entry).
+     * Left null, electron-builder fills these with its own placeholders.
+     */
+    'description' => env('NATIVEPHP_APP_DESCRIPTION', 'Notes, todos, calendar, music, weather and utilities in one offline desktop app.'),
+
+    'website' => env('NATIVEPHP_APP_WEBSITE', 'https://github.com/SoroushSaDev/lara-tools'),
 
     /**
      * The default service provider for your application. This provider
@@ -47,13 +56,24 @@ return [
      * A list of environment keys that should be removed from the
      * .env file when the application is bundled for production.
      * You may use wildcards to match multiple keys.
+     *
+     * Anything not listed here is copied into the installer verbatim,
+     * so every secret the app can read from .env belongs on this list.
+     *
+     * APP_ENV and APP_DEBUG are stripped so a bundle built from a machine
+     * with debugging on still ships a production-configured app: without a
+     * value, Laravel falls back to production with debugging off.
      */
     'cleanup_env_keys' => [
+        'APP_ENV',
+        'APP_DEBUG',
         'AWS_*',
         'GITHUB_*',
         'DO_SPACES_*',
         '*_SECRET',
         'ZEPHPYR_*',
+        'OPENWEATHER_API_KEY',
+
         'NATIVEPHP_UPDATER_PATH',
         'NATIVEPHP_APPLE_ID',
         'NATIVEPHP_APPLE_ID_PASS',
@@ -81,8 +101,11 @@ return [
          * Whether or not the updater is enabled. Please note that the
          * updater will only work when your application is bundled
          * for production.
+         *
+         * Off by default: with no Spaces/GitHub credentials configured, an
+         * enabled updater spends its release checks failing in the background.
          */
-        'enabled' => env('NATIVEPHP_UPDATER_ENABLED', true),
+        'enabled' => env('NATIVEPHP_UPDATER_ENABLED', false),
 
         /**
          * The updater provider to use.
@@ -125,20 +148,21 @@ return [
 
     /**
      * The queue workers that get auto-started on your application start.
+     *
+     * The app dispatches no jobs, so a worker would only cost an extra PHP
+     * process polling the database every second.
      */
-    'queue_workers' => [
-        'default' => [
-            'queues' => ['default'],
-            'memory_limit' => 128,
-            'timeout' => 60,
-        ],
-    ],
+    'queue_workers' => [],
 
     /**
      * Define your own scripts to run before and after the build process.
+     *
+     * The bundle has no dev server, so the Vite manifest and hashed assets
+     * it are built into the installer — without this the packaged app boots
+     * to a page whose CSS and JS both 404.
      */
     'prebuild' => [
-        // 'npm run build',
+        'npm run build',
     ],
 
     'postbuild' => [

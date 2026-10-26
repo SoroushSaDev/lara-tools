@@ -28,4 +28,12 @@ interface WeatherService
      * @throws WeatherException When the coordinates cannot be resolved or the API fails.
      */
     public function byCoordinates(float $latitude, float $longitude, ?string $units = null): array;
+
+    /**
+     * Determine whether a provider key is available.
+     *
+     * Lets a view say "no key configured" instead of reporting an untried
+     * lookup as a connection failure.
+     */
+    public function isConfigured(): bool;
 }

@@ -113,14 +113,30 @@ with hot reloading through Vite.
 
 ### Building for production
 
-Build the front-end assets first, then package the desktop binary:
+Package the desktop app on the machine matching its target — Electron cannot
+cross-compile installers:
 
 ```bash
-npm run build
-php artisan native:build
+php artisan native:build linux x64 --no-interaction   # AppImage + .deb
+php artisan native:build win x64 --no-interaction     # NSIS installer
 ```
 
-The compiled installer/executable is written to the `dist/` directory.
+Front-end assets are compiled for you: `nativephp.prebuild` runs
+`npm run build` as part of packaging, so the installer always contains a
+current `public/build`. The results are written to `dist/`.
+
+Nothing is uploaded anywhere: `-p never` builds locally, and the updater is
+off, so an installed app never phones home for release checks. The app's
+identity (name, version, appId, deep-link scheme) comes from
+`config/nativephp.php`, which reads the `NATIVEPHP_*` keys of `.env`. Only
+`.env.example` is committed, so CI builds use the config defaults — keep your
+local `.env` aligned with it, or installers built by CI and by hand will get
+different app IDs.
+
+`.github/workflows/ci.yml` runs Pint, the test suite on every PHP version
+NativePHP can bundle, a Vite build, and a check that no credential is tracked
+or staged for shipping. `.github/workflows/release.yml` builds the Linux and
+Windows installers and, for a `v*` tag, publishes them as a GitHub release.
 
 ## Testing & Code Style
 
@@ -133,12 +149,13 @@ composer test          # runs the PHPUnit suite against an in-memory database
 
 | Variable | Purpose |
 | --- | --- |
-| `OPENWEATHER_API_KEY` | API key used by the weather module |
+| `OPENWEATHER_API_KEY` | API key used by the weather module (development fallback; the key typed in Settings wins, and this one is stripped from every installer) |
 | `OPENWEATHER_BASE_URL` | Override the OpenWeatherMap endpoint (optional) |
 | `DB_CONNECTION` / `DB_DATABASE` | Local database (SQLite by default) |
+| `NATIVEPHP_APP_ID` / `NATIVEPHP_APP_VERSION` / `NATIVEPHP_DEEPLINK_SCHEME` | Packaged app identity; defaults live in `config/nativephp.php` |
 
-User preferences (theme, weather units, home town) are stored in the local
-`settings` table at runtime — no environment changes needed.
+User preferences (theme, weather units, home town, weather API key) are stored
+in the local `settings` table at runtime — no environment changes needed.
 
 ## Project Structure
 

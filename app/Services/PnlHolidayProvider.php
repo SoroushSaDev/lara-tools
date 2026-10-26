@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Contracts\HolidayProvider;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -14,7 +13,9 @@ use Illuminate\Support\Facades\Log;
  * Holiday provider backed by the pnldev.com Iranian calendar API.
  *
  * Responses are cached for six hours so the calendar renders instantly
- * and keeps working offline with previously cached data.
+ * and keeps working offline with previously cached data. A host that never
+ * answers is remembered for a few minutes, because otherwise every calendar
+ * view would pay the full timeout again for data it cannot get.
  */
 class PnlHolidayProvider implements HolidayProvider
 {
@@ -33,16 +34,18 @@ class PnlHolidayProvider implements HolidayProvider
     protected const CACHE_TTL = 21600;
 
     /**
-     * {@inheritDoc}
+     * How long an unreachable API is remembered, in seconds.
+     *
+     * @var int
      */
-    public function forDate(int $year, int $month, int $day): array
-    {
-        return Cache::remember(
-            "holidays:{$year}-{$month}-{$day}",
-            self::CACHE_TTL,
-            fn () => $this->fetch($year, $month, $day)
-        );
-    }
+    protected const UNREACHABLE_TTL = 300;
+
+    /**
+     * Cache key marking the API as recently unreachable.
+     *
+     * @var string
+     */
+    protected const UNREACHABLE_KEY = 'holidays:unreachable';
 
     /**
      * {@inheritDoc}
@@ -65,69 +68,61 @@ class PnlHolidayProvider implements HolidayProvider
             $pending[$key] = [$year, $month, $day];
         }
 
-        if ($pending !== []) {
-            $responses = Http::timeout(8)->pool(fn (Pool $pool) => collect($pending)
-                ->map(fn (array $date, string $key) => $pool->as($key)->get(self::ENDPOINT, [
-                    'year' => $date[0],
-                    'month' => $date[1],
-                    'day' => $date[2],
-                    'holiday' => 'false',
-                ]))
-                ->all());
+        if ($pending === []) {
+            return $holidays;
+        }
 
-            $failed = [];
+        if (Cache::has(self::UNREACHABLE_KEY)) {
+            return $holidays + array_fill_keys(array_keys($pending), []);
+        }
 
-            foreach ($responses as $key => $response) {
-                // A pooled request that never connected yields the exception
-                // itself, not a response, so it has no json() to call.
-                if (! $response instanceof Response) {
-                    $failed[] = $key;
+        $responses = Http::connectTimeout(3)->timeout(8)->pool(fn (Pool $pool) => collect($pending)
+            ->map(fn (array $date, string $key) => $pool->as($key)->get(self::ENDPOINT, [
+                'year' => $date[0],
+                'month' => $date[1],
+                'day' => $date[2],
+                'holiday' => 'false',
+            ]))
+            ->all());
 
-                    // Left uncached on purpose: the next month view retries
-                    // instead of showing a blank calendar for the whole TTL.
-                    $holidays[$key] = [];
+        $failed = [];
 
-                    continue;
-                }
+        foreach ($responses as $key => $response) {
+            // A pooled request that never connected yields the exception
+            // itself, not a response, so it has no json() to call.
+            if (! $response instanceof Response) {
+                $failed[] = $key;
+                $holidays[$key] = [];
 
-                $titles = $this->parse($response->json());
-
-                Cache::put("holidays:{$key}", $titles, self::CACHE_TTL);
-
-                $holidays[$key] = $titles;
+                continue;
             }
 
-            if ($failed !== []) {
-                Log::info('Holiday API unreachable', ['dates' => $failed]);
-            }
+            $titles = $this->parse($response->json());
+
+            Cache::put("holidays:{$key}", $titles, self::CACHE_TTL);
+
+            $holidays[$key] = $titles;
+        }
+
+        // Only a wholly silent host counts: a partial failure is far more likely
+        // one bad date than a missing connection. The mark is allowed to expire
+        // on its own rather than being cleared here, because reaching this line
+        // already means it had expired or was never set.
+        if ($failed !== [] && count($failed) === count($pending)) {
+            Cache::put(self::UNREACHABLE_KEY, true, self::UNREACHABLE_TTL);
+
+            Log::info('Holiday API unreachable', ['dates' => $failed]);
         }
 
         return $holidays;
     }
 
     /**
-     * Call the remote API, returning an empty list on any failure.
-     *
-     * @return array<int, string>
+     * {@inheritDoc}
      */
-    protected function fetch(int $year, int $month, int $day): array
+    public function isUnavailable(): bool
     {
-        try {
-            $payload = Http::timeout(8)
-                ->get(self::ENDPOINT, [
-                    'year' => $year,
-                    'month' => $month,
-                    'day' => $day,
-                    'holiday' => 'false',
-                ])
-                ->json();
-        } catch (ConnectionException $exception) {
-            Log::info('Holiday API unreachable', ['exception' => $exception->getMessage()]);
-
-            return [];
-        }
-
-        return $this->parse($payload);
+        return Cache::has(self::UNREACHABLE_KEY);
     }
 
     /**

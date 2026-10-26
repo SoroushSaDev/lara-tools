@@ -52,4 +52,52 @@ class City extends Model
     {
         return app(SettingRepository::class)->get('home-town') === $this->name;
     }
+
+    /**
+     * Present the stored snapshot in the shape of an API payload.
+     *
+     * Weather is read from the network, so any request can fail; the dashboard
+     * renders one view either way, and this is what keeps it populated when
+     * there is no connection. Only the columns actually stored are emitted —
+     * the view hides a property whose key is missing, which is why there is no
+     * gust, cloud cover or visibility here. Sunrise and sunset are deliberately
+     * left out too: the view falls back to the datetime columns and labels them
+     * "stored snapshot", whereas a faked timestamp would be shifted by an offset
+     * this table never kept.
+     *
+     * @return array<string, mixed>
+     */
+    public function snapshotPayload(): array
+    {
+        $main = array_filter([
+            'temp' => is_numeric($this->temperature) ? (float) $this->temperature : null,
+            'feels_like' => is_numeric($this->feels_like) ? (float) $this->feels_like : null,
+            'humidity' => is_numeric($this->humidity) ? (int) $this->humidity : null,
+            'pressure' => is_numeric($this->pressure) ? (float) $this->pressure : null,
+            'sea_level' => is_numeric($this->sea_level) && $this->sea_level > 0 ? (float) $this->sea_level : null,
+        ]);
+
+        $wind = array_filter([
+            'speed' => is_numeric($this->wind_speed) ? (float) $this->wind_speed : null,
+            'deg' => is_numeric($this->wind_direction) ? (float) $this->wind_direction : null,
+        ]);
+
+        $coord = array_filter([
+            'lat' => data_get($this->coordinates, 'lat'),
+            'lon' => data_get($this->coordinates, 'lon'),
+        ]);
+
+        return [
+            'name' => $this->name,
+            'weather' => [[
+                'main' => $this->main,
+                'description' => $this->description,
+                'icon' => $this->icon,
+            ]],
+            'main' => $main,
+            'sys' => ['country' => $this->country_code],
+        ]
+            + ($coord !== [] ? ['coord' => $coord] : [])
+            + ($wind !== [] ? ['wind' => $wind] : []);
+    }
 }

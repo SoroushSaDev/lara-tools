@@ -256,7 +256,7 @@
 
             <p class="{{ $bullet }} mt-4">
                 <i class="bi bi-shield-check {{ $bulletIcon }}"></i>
-                Everything else stays on disk: note bodies, checklist items, event titles and locations, file names, tags, saved preferences. The only secret the app holds is your weather API key, which the local PHP process reads and never displays.
+                Everything else stays on disk: note bodies, checklist items, event titles and locations, file names, tags, saved preferences. The one secret the app holds is your weather API key, which you type into Settings, lives in this machine's database, and travels only to OpenWeatherMap with a forecast request.
             </p>
         </section>
 

@@ -395,7 +395,13 @@
 
     .timeline-item::before {
         content: '';
-        @apply absolute top-1.5 start-0 size-4 rounded-full border-4 border-violet-500 bg-white dark:bg-slate-900;
+        @apply absolute top-1.5 start-0 size-4 rounded-full border-4 border-violet-500 bg-white;
+    }
+
+    /* A pseudo-element can't take the dark variant, so `dark:` inside @apply
+       compiles to an invalid `:where(){…}` rule and the browser drops it. */
+    .dark .timeline-item::before {
+        @apply bg-slate-900;
     }
 
     .timeline-item::after {
@@ -525,7 +531,11 @@
 
     .rt-body[data-empty='true']::before {
         content: attr(data-placeholder);
-        @apply pointer-events-none text-slate-400 dark:text-slate-500;
+        @apply pointer-events-none text-slate-400;
+    }
+
+    .dark .rt-body[data-empty='true']::before {
+        @apply text-slate-500;
     }
 
     .rt-rendered {
@@ -553,7 +563,13 @@
 
     /* ---- Leaflet map ------------------------------------------------------ */
     .map-canvas {
-        @apply h-72 w-full overflow-hidden rounded-xl border border-slate-900/10 dark:border-white/10;
+        @apply relative h-72 w-full overflow-hidden rounded-xl border border-slate-900/10 dark:border-white/10;
+    }
+
+    /* Shown when the OSM tiles cannot be reached — the pin stays usable, so
+       the message sits over the grey canvas instead of replacing it. */
+    .map-basemap-notice {
+        @apply pointer-events-none absolute inset-x-0 bottom-0 z-[900] m-0 bg-white/80 px-3 py-2 text-center text-xs font-bold text-slate-600 backdrop-blur-sm dark:bg-slate-900/80 dark:text-slate-300;
     }
 
     .leaflet-container {

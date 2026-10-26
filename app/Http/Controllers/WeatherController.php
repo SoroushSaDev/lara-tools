@@ -39,11 +39,16 @@ class WeatherController extends Controller
 
         $weather = null;
         $error = null;
+        $fromSnapshot = false;
 
         if ($city !== null) {
             try {
-                $weather = $this->weather->byCity($city->name);
+                $weather = $this->fetchFor($city);
             } catch (WeatherException $exception) {
+                // A saved city keeps its last reading, and every reading column
+                // is required, so there is always something to show.
+                $weather = $city->snapshotPayload();
+                $fromSnapshot = true;
                 $error = $exception->getMessage();
             }
         }
@@ -52,8 +57,28 @@ class WeatherController extends Controller
             'city' => $city,
             'weather' => $weather,
             'error' => $error,
+            'fromSnapshot' => $fromSnapshot,
+            'needsKey' => ! $this->weather->isConfigured(),
             'isLiveLocation' => false,
         ]);
+    }
+
+    /**
+     * Fetch a city's current weather.
+     *
+     * Saved cities carry coordinates and those address the station exactly,
+     * while a name lookup resolves to whatever the API thinks you meant; the
+     * name is only the fallback for a row saved without them.
+     *
+     * @throws WeatherException
+     */
+    protected function fetchFor(City $city): array
+    {
+        [$lat, $lon] = [data_get($city->coordinates, 'lat'), data_get($city->coordinates, 'lon')];
+
+        return is_numeric($lat) && is_numeric($lon)
+            ? $this->weather->byCoordinates((float) $lat, (float) $lon)
+            : $this->weather->byCity($city->name);
     }
 
     /**
@@ -68,10 +93,14 @@ class WeatherController extends Controller
         try {
             $weather = $this->weather->byCoordinates($latitude, $longitude);
         } catch (WeatherException $exception) {
+            // Nothing is stored for a one-off coordinate, so there is no
+            // snapshot to fall back on here.
             return view('weather.index', [
                 'city' => null,
                 'weather' => null,
                 'error' => $exception->getMessage(),
+                'fromSnapshot' => false,
+                'needsKey' => ! $this->weather->isConfigured(),
                 'isLiveLocation' => true,
             ]);
         }
@@ -80,6 +109,8 @@ class WeatherController extends Controller
             'city' => null,
             'weather' => $weather,
             'error' => null,
+            'fromSnapshot' => false,
+            'needsKey' => false,
             'isLiveLocation' => true,
         ]);
     }
@@ -178,7 +209,7 @@ class WeatherController extends Controller
     public function refresh(City $city): RedirectResponse
     {
         try {
-            $this->applySnapshot($city, $this->weather->byCity($city->name));
+            $this->applySnapshot($city, $this->fetchFor($city));
             $city->save();
         } catch (WeatherException $exception) {
             return back()->with('error', $exception->getMessage());
