@@ -244,6 +244,28 @@
             dark:hover:!border-rose-500 dark:hover:!bg-rose-500 dark:hover:!text-white;
     }
 
+    /* Like toggle: both heart glyphs ship inside the button and CSS chooses
+       the visible one, so a click only ever flips a single class. */
+    .like-btn .like-liked {
+        display: none;
+    }
+
+    .like-btn.is-liked {
+        @apply !border-rose-500/50 !bg-rose-500/15 !text-rose-600;
+    }
+
+    .like-btn.is-liked .like-idle {
+        display: none;
+    }
+
+    .like-btn.is-liked .like-liked {
+        display: inline-block;
+    }
+
+    .dark .like-btn.is-liked {
+        @apply !border-fuchsia-400/40 !bg-fuchsia-500/15 !text-fuchsia-300;
+    }
+
     /* ---- Forms --------------------------------------------------------- */
     .field-input {
         @apply w-full rounded-xl border border-slate-900/10 bg-white/70 px-4 py-3 text-sm font-semibold text-slate-900

@@ -7,7 +7,7 @@
                 <i class="bi bi-search me-1.5"></i>{{ $musicFiles->count() }} of {{ $total }} {{ str('track')->plural($total) }} match “{{ $query }}”
             </span>
 
-            <a href="{{ route('music.index') }}" class="text-violet-600 transition-colors hover:text-violet-800 dark:text-fuchsia-300 dark:hover:text-fuchsia-200">
+            <a href="{{ route('music.index', ['liked' => $likedOnly ? 1 : null]) }}" class="text-violet-600 transition-colors hover:text-violet-800 dark:text-fuchsia-300 dark:hover:text-fuchsia-200">
                 Clear
             </a>
         </p>
@@ -20,12 +20,26 @@
             @if (filled($term))
                 <x-empty-state icon="bi-search" title="No track matches that">
                     <x-slot:description>
-                        Nothing in your titles, artists, albums, genres or file names contains “{{ $query }}”.
+                        @if ($likedOnly)
+                            None of your liked tracks contain “{{ $query }}”.
+                        @else
+                            Nothing in your titles, artists, albums, genres or file names contains “{{ $query }}”.
+                        @endif
                     </x-slot:description>
 
                     <x-slot:action>
+                        <a href="{{ route('music.index', ['liked' => $likedOnly ? 1 : null]) }}" class="btn-primary mt-2">
+                            <i class="bi bi-x-lg"></i>{{ $likedOnly ? 'Show every liked track' : 'Show the whole library' }}
+                        </a>
+                    </x-slot:action>
+                </x-empty-state>
+            @elseif ($likedOnly)
+                <x-empty-state icon="bi-heart" title="Nothing liked yet">
+                    <x-slot:description>Tap the heart on a track and it will wait for you in this list.</x-slot:description>
+
+                    <x-slot:action>
                         <a href="{{ route('music.index') }}" class="btn-primary mt-2">
-                            <i class="bi bi-x-lg"></i>Show the whole library
+                            <i class="bi bi-music-note-list"></i>Show the whole library
                         </a>
                     </x-slot:action>
                 </x-empty-state>

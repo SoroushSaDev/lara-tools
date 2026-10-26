@@ -7,10 +7,18 @@
     'value' => null,
     'placeholder' => 'Search…',
     'label' => 'Search',
+    'params' => [],
 ])
 
+{{-- Companion filters live here as hidden inputs: a frame reload rebuilds the
+     query from this form alone, so anything not carried would be dropped the
+     moment the user types. --}}
 <form method="GET" action="{{ $action }}" data-turbo-frame="{{ $frame }}" data-search-form
       {{ $attributes->merge(['class' => 'relative w-full']) }}>
+    @foreach ($params as $key => $param)
+        <input type="hidden" name="{{ $key }}" value="{{ $param }}"/>
+    @endforeach
+
     <i class="bi bi-search pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-slate-400 dark:text-slate-500"></i>
 
     <input type="search" name="q" value="{{ $value }}" placeholder="{{ $placeholder }}"

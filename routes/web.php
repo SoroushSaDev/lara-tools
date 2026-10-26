@@ -54,6 +54,7 @@ Route::prefix('music')->name('music.')->group(function () {
     Route::get('/', [MusicController::class, 'index'])->name('index');
     Route::post('/pick', [MusicController::class, 'pick'])->name('pick');
     Route::put('/{music}', [MusicController::class, 'update'])->name('update');
+    Route::patch('/{music}/like', [MusicController::class, 'toggleLike'])->name('like');
     Route::get('/{music}/edit', [MusicController::class, 'edit'])->name('edit');
     Route::delete('/{music}/delete', [MusicController::class, 'destroy'])->name('destroy');
     Route::get('/stream/{music}', [MusicController::class, 'stream'])->name('stream');

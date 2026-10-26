@@ -6,6 +6,7 @@ use App\Models\Music;
 use App\Services\MusicLibraryService;
 use App\Support\Search;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -25,17 +26,22 @@ class MusicController extends Controller
     ) {}
 
     /**
-     * Display the music library, narrowed by the search term when present.
+     * Display the music library, narrowed by the liked filter and the search
+     * term when either is present.
      */
     public function index(Request $request): View
     {
         $term = Search::term($request->query('q'));
+        $likedOnly = $request->boolean('liked');
 
         $tracks = Music::latest()->get();
+        $likedTracks = $tracks->where('liked', true);
 
         $data = [
-            'musicFiles' => Search::filter($tracks, $term),
+            'musicFiles' => Search::filter($likedOnly ? $likedTracks : $tracks, $term),
             'total' => $tracks->count(),
+            'likedTotal' => $likedTracks->count(),
+            'likedOnly' => $likedOnly,
             'term' => $term,
             'query' => $request->query('q'),
         ];
@@ -240,6 +246,20 @@ class MusicController extends Controller
         }
 
         return ['error', 'Saved in your library, but the file could not be re-tagged.'];
+    }
+
+    /**
+     * Flip whether a track is liked and report the new state.
+     *
+     * Answered with JSON instead of a redirect: a like must not reload the
+     * library page, which would throw away the player's in-memory position.
+     */
+    public function toggleLike(Music $music): JsonResponse
+    {
+        $music->liked = ! $music->liked;
+        $music->save();
+
+        return response()->json(['liked' => $music->liked]);
     }
 
     /**

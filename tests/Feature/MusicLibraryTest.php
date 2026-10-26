@@ -84,6 +84,88 @@ class MusicLibraryTest extends TestCase
     }
 
     /**
+     * The like toggle answers with the state it just stored, and stores it.
+     */
+    public function test_liking_a_track_persists_and_reports_the_new_state(): void
+    {
+        $music = $this->createTrack();
+
+        $this->patch(route('music.like', $music))
+            ->assertOk()
+            ->assertJson(['liked' => true]);
+
+        $this->assertTrue($music->fresh()->liked);
+
+        $this->patch(route('music.like', $music))
+            ->assertOk()
+            ->assertJson(['liked' => false]);
+
+        $this->assertFalse($music->fresh()->liked);
+    }
+
+    /**
+     * An import starts unliked: the column must not default everyone in.
+     */
+    public function test_imported_tracks_start_unliked(): void
+    {
+        $this->assertFalse($this->createTrack()->fresh()->liked);
+    }
+
+    /**
+     * The Liked filter keeps only the liked rows, on the page and in the
+     * frame the search box reloads into.
+     */
+    public function test_the_library_can_be_filtered_to_liked_tracks(): void
+    {
+        $kept = $this->createTrack(['title' => 'Keep Me', 'name' => 'keep.mp3']);
+        $this->createTrack(['title' => 'Skip Me', 'name' => 'skip.mp3']);
+
+        $this->patch(route('music.like', $kept));
+
+        $this->get(route('music.index'))
+            ->assertSee('Keep Me')
+            ->assertSee('Skip Me');
+
+        $this->get(route('music.index', ['liked' => 1]))
+            ->assertSee('Keep Me')
+            ->assertDontSee('Skip Me');
+
+        $this->withHeader('Turbo-Frame', 'music-results')
+            ->get(route('music.index', ['liked' => 1]))
+            ->assertSee('Keep Me')
+            ->assertDontSee('Skip Me');
+    }
+
+    /**
+     * Filtering and searching narrow together instead of replacing each other.
+     */
+    public function test_the_liked_filter_combines_with_the_search_term(): void
+    {
+        foreach (['Alpha Song', 'Beta Song'] as $title) {
+            $this->patch(route('music.like', $this->createTrack(['title' => $title])));
+        }
+
+        $this->createTrack(['title' => 'Alpha Reject']);
+
+        $this->get(route('music.index', ['liked' => 1, 'q' => 'alpha']))
+            ->assertSee('Alpha Song')
+            ->assertDontSee('Beta Song')
+            // Matching, but unliked: the filter must have removed it first.
+            ->assertDontSee('Alpha Reject');
+    }
+
+    /**
+     * The search box carries the active filter, or typing would drop it.
+     */
+    public function test_the_search_box_carries_the_liked_filter(): void
+    {
+        $this->get(route('music.index'))->assertDontSee('name="liked"', false);
+
+        $this->get(route('music.index', ['liked' => 1]))
+            ->assertSee('<input type="hidden" name="liked" value="1"/>', false);
+    }
+
+    /**
      * Tracks without artwork return 404 from the cover endpoint.
      */
     public function test_cover_endpoint_returns_404_without_artwork(): void

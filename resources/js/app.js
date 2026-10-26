@@ -15,6 +15,7 @@ import './modules/confirm';
 import './modules/tabs';
 import './modules/changelog';
 import './modules/music-player';
+import './modules/music-likes';
 import './modules/calculator';
 import './modules/calendar';
 import './modules/todo-items';

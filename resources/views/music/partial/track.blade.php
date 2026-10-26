@@ -55,6 +55,16 @@
         {{ formatTime($track->duration) }}
     </span>
 
+    {{-- Like toggle; a <button> keeps music-player.js from treating the click
+         as a play request, and modules/music-likes.js owns the round trip. --}}
+    <button type="button" data-like-url="{{ route('music.like', $track) }}"
+            @class(['icon-btn like-btn !size-9 shrink-0', 'is-liked' => $track->liked])
+            aria-pressed="{{ $track->liked ? 'true' : 'false' }}"
+            title="{{ $track->liked ? 'Remove from liked' : 'Like this track' }}">
+        <i class="bi bi-heart like-idle"></i>
+        <i class="bi bi-heart-fill like-liked"></i>
+    </button>
+
     {{-- Details editor and delete, both reachable without hovering --}}
     <a href="{{ route('music.edit', $track) }}" title="Edit details"
        class="icon-btn !size-9 shrink-0 opacity-100" data-turbo-prefetch="false">

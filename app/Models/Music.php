@@ -24,6 +24,7 @@ class Music extends Model
         'track_number',
         'duration',
         'cover_image',
+        'liked',
     ];
 
     /**
@@ -37,6 +38,7 @@ class Music extends Model
             'duration' => 'integer',
             'year' => 'integer',
             'track_number' => 'integer',
+            'liked' => 'boolean',
         ];
     }
 
